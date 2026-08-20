@@ -106,6 +106,17 @@ h3{font-size:1.1rem}
 }
 .hero__inner{position:relative;width:100%}
 .hero__copy{max-width:36rem}
+.hero__copy h1,
+.hero__copy .eyebrow{
+  -webkit-user-select:none;user-select:none;cursor:default;caret-color:transparent;
+}
+.hero__copy h1{text-shadow:0 2px 16px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.85)}
+.hero__copy .eyebrow{color:var(--bone);opacity:.88;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.hero__copy .lede{
+  color:var(--bone);opacity:.92;
+  text-shadow:0 2px 14px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.8);
+  -webkit-user-select:none;user-select:none;cursor:default;caret-color:transparent;
+}
 .hero__brand{
   width:min(70vw, 26rem);
   height:auto;
