@@ -216,8 +216,7 @@
     <h2>Ready to clear it out?</h2>
     <p class="lede">Send the details and we will come back with a price. Prefer to talk it through? Call (904) 913-5596.</p>
 
-    <!-- SWAP THIS: replace YOUR_FORM_ID with your Formspree endpoint -->
-    <form class="form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+    <form class="form" id="quoteForm" novalidate>
       <div class="field">
         <label for="name">Your name</label>
         <input id="name" name="name" type="text" autocomplete="name" required maxlength="120">
@@ -242,6 +241,7 @@
       </div>
       <div class="field--full">
         <button class="btn btn--book" type="submit">Book pickup</button>
+        <p class="form__status" id="formStatus" role="status" aria-live="polite"></p>
       </div>
     </form>
   </div>
