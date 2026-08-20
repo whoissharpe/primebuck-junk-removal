@@ -154,6 +154,28 @@ h3{font-size:1.1rem}
 .trustbar__item svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--clay-step);stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round}
 
+/* Mobile: convert the trust row into an auto-scrolling marquee.
+   The second .trustbar__group is an exact duplicate (aria-hidden) so the
+   loop is seamless at -50% translation. Desktop keeps the original grid
+   and never sees the duplicate. */
+@media(max-width:639px){
+  .trustbar{overflow:hidden}
+  .trustbar__track{display:flex;width:max-content;animation:trustbar-marquee 16s linear infinite}
+  .trustbar__group{
+    display:flex;flex:none;align-items:center;gap:2.25rem;
+    padding-block:1.1rem;padding-inline:1.25rem;
+  }
+  .trustbar__group.wrap{max-width:none}
+  .trustbar__item{white-space:nowrap}
+}
+@keyframes trustbar-marquee{
+  from{transform:translateX(0)}
+  to{transform:translateX(-50%)}
+}
+@media(min-width:640px){
+  .trustbar__group--dup{display:none}
+}
+
 
 @media (prefers-reduced-motion:reduce){
   .hero__video{display:none}
