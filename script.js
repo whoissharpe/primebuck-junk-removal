@@ -67,3 +67,55 @@
     if (e.key === 'ArrowRight') show(idx + 1);
   });
 })();
+
+/* Quote form — posts to our own /api/submit (Cloudflare Pages Function + D1). */
+(function () {
+  'use strict';
+  var form = document.getElementById('quoteForm');
+  if (!form) return;
+  var status = document.getElementById('formStatus');
+  var button = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var payload = {
+      name: form.name.value.trim(),
+      phone: form.phone.value.trim(),
+      email: form.email.value.trim(),
+      message: form.message.value.trim(),
+      smsConsent: form.sms.checked,
+    };
+    if (!payload.name || !payload.phone || !payload.email || !payload.message) {
+      status.textContent = 'Please fill in every field.';
+      status.className = 'form__status form__status--err';
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    status.textContent = '';
+    status.className = 'form__status';
+
+    try {
+      var res = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (res.ok && data.ok) {
+        form.reset();
+        status.textContent = 'Thanks — we got it and will be in touch shortly.';
+        status.className = 'form__status form__status--ok';
+      } else {
+        throw new Error(data.error || 'unknown');
+      }
+    } catch (err) {
+      status.textContent = 'Something went wrong. Please call (904) 913-5596 instead.';
+      status.className = 'form__status form__status--err';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Book pickup';
+    }
+  });
+})();
