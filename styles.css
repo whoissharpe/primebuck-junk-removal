@@ -117,6 +117,9 @@ h3{font-size:1.1rem}
   text-shadow:0 2px 14px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.8);
   -webkit-user-select:none;user-select:none;cursor:default;caret-color:transparent;
 }
+.hero__actions{
+  margin-top:1.9rem;display:flex;flex-wrap:wrap;gap:.9rem;
+}
 .hero__brand{
   width:min(70vw, 26rem);
   height:auto;
