@@ -8,6 +8,7 @@
   --bone:#F2EEE3;
   --muted:#A8B39C;
   --clay:#B5462F;
+  --clay-step:#C67561; /* WCAG AA-passing tint of clay, for small text on raised bg */
   --clay-lift:#C8502F;
   --line:rgba(242,238,227,.14);
   --line-soft:rgba(242,238,227,.07);
@@ -128,7 +129,7 @@ h3{font-size:1.1rem}
 @media(min-width:760px){.steps{grid-template-columns:repeat(4,1fr);gap:1.25rem}}
 .step{border-top:2px solid var(--bone);padding-top:1rem}
 .step__n{font-family:var(--display);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--clay);display:block;margin-bottom:.5rem;font-weight:700}
+  color:var(--clay-step);display:block;margin-bottom:.5rem;font-weight:700}
 .step p{margin:.45rem 0 0;font-size:.93rem;color:var(--muted)}
 
 /* ---------- split + facts ---------- */
@@ -238,3 +239,8 @@ h3{font-size:1.1rem}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
 }
+
+/* ---------- form status message ---------- */
+.form__status{margin:.85rem 0 0;font-size:.9rem;min-height:1.2em}
+.form__status--ok{color:var(--bone)}
+.form__status--err{color:var(--clay-step)}
