@@ -210,7 +210,7 @@ function renderPage(rows, hasContactTracking, missing) {
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{
-    margin:0;color:var(--bone);font-family:var(--body);
+    margin:0;color:var(--bone);font-family:var(--body);overflow-x:hidden;
     background:
       radial-gradient(60rem 30rem at 12% -10%, rgba(181,70,47,.10), transparent 60%),
       radial-gradient(50rem 26rem at 100% 0%, rgba(49,70,30,.35), transparent 55%),
@@ -218,18 +218,22 @@ function renderPage(rows, hasContactTracking, missing) {
     padding:2.5rem 1.5rem 5rem;line-height:1.5;
   }
   h1,h2{font-family:var(--display);margin:0;letter-spacing:-.02em}
-  .wrap{max-width:88rem;margin:0 auto}
+  .wrap{max-width:88rem;margin:0 auto;position:relative;z-index:1}
 
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:.7rem}
-  .brand__mark{
-    width:2.5rem;height:2.5rem;border-radius:6px;background:var(--clay);
-    display:flex;align-items:center;justify-content:center;flex:none;
-    font-family:var(--display);font-weight:800;font-size:1.05rem;color:var(--bone);
-  }
+  .brand{display:flex;align-items:center;gap:.85rem}
+  .brand__mark{width:2.75rem;height:2.75rem;object-fit:contain;flex:none;display:block}
   .brand__text{line-height:1.25}
   .brand__text .biz{font-family:var(--display);font-weight:800;font-size:1.02rem}
   .brand__text .tag{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+
+  /* ---------- background watermark ---------- */
+  .bg-buck{
+    position:fixed;top:50%;right:-4rem;transform:translateY(-50%);
+    width:min(42vw,32rem);height:auto;opacity:.05;z-index:0;
+    pointer-events:none;user-select:none;
+  }
+  @media(max-width:900px){.bg-buck{display:none}}
 
   h1{font-size:1.9rem}
   .sub{color:var(--muted);font-size:.92rem;margin:.35rem 0 0}
@@ -354,10 +358,11 @@ function renderPage(rows, hasContactTracking, missing) {
 </style>
 </head>
 <body>
+  <img class="bg-buck" src="/assets/logo.png" alt="" aria-hidden="true">
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <div class="brand__mark">PB</div>
+        <img class="brand__mark" src="/assets/logo.png" alt="Prime Buck Junk Removal" width="44" height="44">
         <div class="brand__text">
           <div class="biz">Prime Buck Junk Removal</div>
           <div class="tag">Admin dashboard</div>
