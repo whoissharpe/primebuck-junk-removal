@@ -32,14 +32,17 @@ export async function onRequestGet(context) {
   const hasContactedCount = columns.has("contacted_count");
   const hasLastContactedAt = columns.has("last_contacted_at");
   const hasContactTracking = hasContactedCount && hasLastContactedAt;
+  const hasSource = columns.has("source");
 
   const missing = [];
   if (!hasContactedCount) missing.push("contacted_count INTEGER DEFAULT 0");
   if (!hasLastContactedAt) missing.push("last_contacted_at TEXT");
+  if (!hasSource) missing.push("source TEXT DEFAULT 'Website'");
 
   const selectCols = ["id", "name", "phone", "email", "message", "sms_consent", "created_at"];
   if (hasPhotos) selectCols.push("photos");
   if (hasContactTracking) selectCols.push("contacted_count", "last_contacted_at");
+  if (hasSource) selectCols.push("source");
 
   let rows = [];
   try {
@@ -51,7 +54,7 @@ export async function onRequestGet(context) {
     return new Response("Database error: " + err.message, { status: 500 });
   }
 
-  return new Response(renderPage(rows, hasContactTracking, missing), {
+  return new Response(renderPage(rows, hasContactTracking, hasSource, missing), {
     headers: { "content-type": "text/html; charset=utf-8" },
   });
 }
@@ -131,6 +134,60 @@ function renderMessage(msg) {
   return `<details class="msg-more"><summary>${esc(short)}</summary><p>${esc(full)}</p></details>`;
 }
 
+const MANUAL_SOURCES = ["Phone call", "Text", "Referral", "Facebook", "Instagram", "Google", "Walk-in", "Other"];
+
+function renderSourceBadge(source) {
+  if (!source) return `<span class="empty-cell">—</span>`;
+  const isWebsite = source === "Website";
+  return `<span class="badge ${isWebsite ? "badge--source-web" : "badge--source-manual"}">${esc(source)}</span>`;
+}
+
+function renderAddLeadPanel() {
+  const options = MANUAL_SOURCES.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+  return `
+  <div class="add-lead-panel" id="addLeadPanel" hidden>
+    <h2>Add a lead manually</h2>
+    <p class="sub">For leads that came in by phone, text, referral, etc. — not through the website form.</p>
+    <form id="addLeadForm" class="add-lead-form" novalidate>
+      <div class="field">
+        <label for="al-name">Name</label>
+        <input id="al-name" name="name" type="text" required maxlength="120">
+      </div>
+      <div class="field">
+        <label for="al-phone">Phone</label>
+        <input id="al-phone" name="phone" type="tel" required maxlength="40">
+      </div>
+      <div class="field">
+        <label for="al-email">Email <span class="muted">(optional)</span></label>
+        <input id="al-email" name="email" type="email" maxlength="200">
+      </div>
+      <div class="field">
+        <label for="al-source">Source</label>
+        <select id="al-source" name="source" required>
+          <option value="" disabled selected>Choose one…</option>
+          <option value="Website" disabled>Website (locked — set automatically)</option>
+          ${options}
+        </select>
+      </div>
+      <div class="field field--full">
+        <label for="al-message">What needs to go?</label>
+        <textarea id="al-message" name="message" required maxlength="2000"></textarea>
+      </div>
+      <div class="field--full">
+        <label class="consent" for="al-sms">
+          <input id="al-sms" name="sms_consent" type="checkbox" value="yes">
+          <span>Customer agreed to receive text messages.</span>
+        </label>
+      </div>
+      <div class="field--full add-lead-actions">
+        <button type="submit" class="btn-primary">Save lead</button>
+        <button type="button" class="btn-secondary" id="addLeadCancel">Cancel</button>
+        <p class="form-status" id="addLeadStatus" role="status" aria-live="polite"></p>
+      </div>
+    </form>
+  </div>`;
+}
+
 function renderContactCell(r) {
   const count = r.contacted_count || 0;
   const contacted = count > 0;
@@ -145,7 +202,7 @@ function renderContactCell(r) {
   `;
 }
 
-function renderPage(rows, hasContactTracking, missing) {
+function renderPage(rows, hasContactTracking, hasSource, missing) {
   const count = rows.length;
   const thisWeek = rows.filter(r => isThisWeek(r.created_at)).length;
   const smsOptIns = rows.filter(r => r.sms_consent).length;
@@ -153,9 +210,10 @@ function renderPage(rows, hasContactTracking, missing) {
   const needsContact = hasContactTracking ? rows.filter(r => !(r.contacted_count > 0)).length : null;
 
   const contactTh = hasContactTracking ? `<th>Contact</th>` : "";
-  const migrationNotice = hasContactTracking ? "" : `
+  const sourceTh = hasSource ? `<th>Source</th>` : "";
+  const featureNotice = missing.length === 0 ? "" : `
     <div class="notice">
-      Contact tracking isn't fully set up — missing column${missing.length > 1 ? "s" : ""}: <strong>${esc(missing.map(m => m.split(" ")[0]).join(", "))}</strong>.
+      A couple of features aren't fully set up — missing column${missing.length > 1 ? "s" : ""}: <strong>${esc(missing.map(m => m.split(" ")[0]).join(", "))}</strong>.
       Run these <em>one at a time</em> (separately, not pasted together) in the Cloudflare D1 SQL console:
       ${missing.map(m => `<code>ALTER TABLE leads ADD COLUMN ${esc(m)};</code>`).join("")}
       Then refresh this page. If a column already exists you'll get a harmless "duplicate column name" error on that one — that's fine, it means it's already there.
@@ -165,6 +223,7 @@ function renderPage(rows, hasContactTracking, missing) {
     ? rows.map(r => {
         const photos = parsedPhotos(r.photos);
         const contacted = hasContactTracking && r.contacted_count > 0;
+        const source = hasSource ? (r.source || "Website") : null;
         return `
         <tr class="${isNew(r.created_at) ? "is-new" : ""}" ${hasContactTracking ? `data-contacted="${contacted ? 1 : 0}"` : ""}>
           <td class="nowrap" data-label="Received">
@@ -178,9 +237,10 @@ function renderPage(rows, hasContactTracking, missing) {
           <td class="nowrap" data-label="SMS OK">${r.sms_consent ? `<span class="badge badge--yes">Yes</span>` : `<span class="badge badge--no">No</span>`}</td>
           <td data-label="Photos">${photos.length ? renderPhotos(r.photos) : `<span class="empty-cell">—</span>`}</td>
           ${hasContactTracking ? `<td data-label="Contact">${renderContactCell(r)}</td>` : ""}
+          ${hasSource ? `<td class="nowrap" data-label="Source">${renderSourceBadge(source)}</td>` : ""}
         </tr>`;
       }).join("")
-    : `<tr><td colspan="${hasContactTracking ? 8 : 7}" class="empty">
+    : `<tr><td colspan="${6 + (hasContactTracking ? 1 : 0) + (hasSource ? 1 : 0) + 1}" class="empty">
          <svg viewBox="0 0 24 24" aria-hidden="true" class="empty-ico"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M7 9l5-5 5 5"/><path d="M12 4v13"/></svg>
          <p>No submissions yet.</p>
          <p class="muted">New quote requests will appear here automatically.</p>
@@ -218,6 +278,9 @@ function renderPage(rows, hasContactTracking, missing) {
     padding:2.5rem 1.5rem 5rem;line-height:1.5;
   }
   h1,h2{font-family:var(--display);margin:0;letter-spacing:-.02em}
+  h1,h2,.sub,.brand__tag,.stat__n,.stat__label,th,.badge,.filter-btn{
+    -webkit-user-select:none;user-select:none;cursor:default;caret-color:transparent;
+  }
   .wrap{max-width:88rem;margin:0 auto;position:relative;z-index:1}
 
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}
@@ -230,11 +293,11 @@ function renderPage(rows, hasContactTracking, missing) {
 
   /* ---------- background watermark ---------- */
   .bg-buck{
-    position:fixed;top:50%;right:-4rem;transform:translateY(-50%);
-    width:min(42vw,32rem);height:auto;opacity:.05;z-index:0;
+    position:fixed;top:46%;right:-9rem;transform:translateY(-50%);
+    width:min(58vw,44rem);height:auto;opacity:.045;z-index:0;
     pointer-events:none;user-select:none;
   }
-  @media(max-width:900px){.bg-buck{display:none}}
+  @media(max-width:1100px){.bg-buck{display:none}}
 
   h1{font-size:1.9rem}
   .sub{color:var(--muted);font-size:.92rem;margin:.35rem 0 0}
@@ -255,7 +318,7 @@ function renderPage(rows, hasContactTracking, missing) {
   @media(min-width:640px){.stats{grid-template-columns:repeat(5,1fr)}}
   @media(max-width:639px){.stats{grid-template-columns:repeat(2,1fr)}}
 
-  .filterbar{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
+  .filterbar{display:flex;gap:.5rem;flex-wrap:wrap}
   .filter-btn{
     font-family:var(--body);font-size:.82rem;font-weight:600;color:var(--muted);
     background:var(--raised);border:1px solid var(--line-soft);border-radius:999px;
@@ -263,6 +326,54 @@ function renderPage(rows, hasContactTracking, missing) {
   }
   .filter-btn:hover{color:var(--bone);border-color:var(--line)}
   .filter-btn.is-active{background:var(--clay);border-color:var(--clay);color:var(--bone)}
+
+  .actionbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+    margin-bottom:1.25rem;flex-wrap:wrap}
+  .btn-add-lead{
+    font-family:var(--body);font-size:.85rem;font-weight:700;color:var(--bone);
+    background:transparent;border:1px solid var(--clay-step);border-radius:999px;
+    padding:.55rem 1.15rem;cursor:pointer;transition:all .12s ease;flex:none;
+  }
+  .btn-add-lead:hover{background:var(--clay);border-color:var(--clay)}
+
+  .add-lead-panel{
+    background:var(--raised);border:1px solid var(--line-soft);border-radius:10px;
+    padding:1.5rem 1.6rem 1.75rem;margin-bottom:1.5rem;
+  }
+  .add-lead-panel h2{font-size:1.15rem;margin-bottom:.25rem}
+  .add-lead-form{display:grid;gap:1rem;margin-top:1.25rem;grid-template-columns:1fr}
+  @media(min-width:680px){.add-lead-form{grid-template-columns:repeat(2,1fr)}.add-lead-form .field--full{grid-column:1/-1}}
+  .add-lead-form .field{display:flex;flex-direction:column;gap:.4rem}
+  .add-lead-form label{font-size:.76rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .add-lead-form input,.add-lead-form select,.add-lead-form textarea{
+    background:var(--ground);border:1px solid var(--line);color:var(--bone);
+    font-family:var(--body);font-size:.95rem;padding:.7rem .85rem;border-radius:6px;width:100%;
+  }
+  .add-lead-form select option:disabled{color:#6b7565}
+  .add-lead-form textarea{min-height:6rem;resize:vertical}
+  .add-lead-form input:focus-visible,.add-lead-form select:focus-visible,.add-lead-form textarea:focus-visible{
+    outline:2px solid var(--bone);outline-offset:1px;
+  }
+  .add-lead-form .consent{display:flex;gap:.6rem;align-items:flex-start;font-size:.82rem;color:var(--muted)}
+  .add-lead-form .consent input{margin-top:.2rem;width:1rem;height:1rem;accent-color:var(--clay);flex:none}
+  .add-lead-actions{display:flex;align-items:center;gap:.85rem;flex-wrap:wrap}
+  .btn-primary{
+    font-family:var(--display);font-weight:700;font-size:.92rem;color:var(--bone);
+    background:var(--clay);border:0;border-radius:6px;padding:.75rem 1.4rem;cursor:pointer;
+  }
+  .btn-primary:hover{background:var(--clay-lift)}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed}
+  .btn-secondary{
+    font-family:var(--body);font-weight:600;font-size:.88rem;color:var(--muted);
+    background:transparent;border:1px solid var(--line);border-radius:6px;padding:.75rem 1.2rem;cursor:pointer;
+  }
+  .btn-secondary:hover{color:var(--bone);border-color:var(--line-soft)}
+  .form-status{font-size:.85rem;margin:0;min-height:1.2em}
+  .form-status--ok{color:var(--good)}
+  .form-status--err{color:var(--clay-step)}
+
+  .badge--source-web{background:rgba(242,238,227,.08);color:var(--muted)}
+  .badge--source-manual{background:rgba(198,117,97,.16);color:var(--clay-step)}
 
   .card{
     background:var(--raised);border:1px solid var(--line-soft);border-radius:10px;overflow:hidden;
@@ -359,7 +470,7 @@ function renderPage(rows, hasContactTracking, missing) {
 </style>
 </head>
 <body>
-  <img class="bg-buck" src="/assets/logo.png" alt="" aria-hidden="true">
+  <img class="bg-buck" src="/assets/logo-head.png" alt="" aria-hidden="true">
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
@@ -371,7 +482,7 @@ function renderPage(rows, hasContactTracking, missing) {
     <h1>Quote requests</h1>
     <p class="sub">Newest first — refresh to see new submissions.</p>
 
-    ${migrationNotice}
+    ${featureNotice}
 
     <div class="stats">
       <div class="stat"><div class="stat__n">${count}</div><div class="stat__label">Total leads</div></div>
@@ -381,24 +492,30 @@ function renderPage(rows, hasContactTracking, missing) {
       ${hasContactTracking ? `<div class="stat stat--flag"><div class="stat__n">${needsContact}</div><div class="stat__label">Needs contact</div></div>` : ""}
     </div>
 
-    ${hasContactTracking ? `
-    <div class="filterbar">
-      <button type="button" class="filter-btn is-active" data-filter="all">All</button>
-      <button type="button" class="filter-btn" data-filter="pending">Needs contact</button>
-      <button type="button" class="filter-btn" data-filter="done">Contacted</button>
+    ${hasContactTracking || hasSource ? `
+    <div class="actionbar">
+      ${hasContactTracking ? `
+      <div class="filterbar">
+        <button type="button" class="filter-btn is-active" data-filter="all">All</button>
+        <button type="button" class="filter-btn" data-filter="pending">Needs contact</button>
+        <button type="button" class="filter-btn" data-filter="done">Contacted</button>
+      </div>` : `<div></div>`}
+      ${hasSource ? `<button type="button" class="btn-add-lead" id="addLeadBtn">+ Add lead</button>` : ""}
     </div>` : ""}
+
+    ${hasSource ? renderAddLeadPanel() : ""}
 
     <div class="card">
       <table>
         <thead>
-          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th>${contactTh}</tr>
+          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th>${contactTh}${sourceTh}</tr>
         </thead>
         <tbody>${body}</tbody>
       </table>
     </div>
   </div>
 
-  ${hasContactTracking ? `<script>
+  ${(hasContactTracking || hasSource) ? `<script>
   (function () {
     'use strict';
     var filterBtns = document.querySelectorAll('.filter-btn');
@@ -486,6 +603,71 @@ function renderPage(rows, hasContactTracking, missing) {
           });
       });
     });
+
+    // ---- Add lead panel ----
+    var addLeadBtn = document.getElementById('addLeadBtn');
+    var addLeadPanel = document.getElementById('addLeadPanel');
+    var addLeadCancel = document.getElementById('addLeadCancel');
+    var addLeadForm = document.getElementById('addLeadForm');
+
+    if (addLeadBtn && addLeadPanel) {
+      addLeadBtn.addEventListener('click', function () {
+        addLeadPanel.hidden = !addLeadPanel.hidden;
+        if (!addLeadPanel.hidden) {
+          var nameField = document.getElementById('al-name');
+          if (nameField) nameField.focus();
+        }
+      });
+    }
+    if (addLeadCancel && addLeadPanel && addLeadForm) {
+      addLeadCancel.addEventListener('click', function () {
+        addLeadPanel.hidden = true;
+        addLeadForm.reset();
+        var status = document.getElementById('addLeadStatus');
+        if (status) { status.textContent = ''; status.className = 'form-status'; }
+      });
+    }
+    if (addLeadForm) {
+      addLeadForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var status = document.getElementById('addLeadStatus');
+        var submitBtn = addLeadForm.querySelector('button[type="submit"]');
+        var payload = {
+          name: addLeadForm.name.value.trim(),
+          phone: addLeadForm.phone.value.trim(),
+          email: addLeadForm.email.value.trim(),
+          message: addLeadForm.message.value.trim(),
+          source: addLeadForm.source.value,
+          smsConsent: addLeadForm.sms_consent.checked,
+        };
+        if (!payload.name || !payload.phone || !payload.message || !payload.source) {
+          status.textContent = 'Please fill in name, phone, source and message.';
+          status.className = 'form-status form-status--err';
+          return;
+        }
+        submitBtn.disabled = true;
+        status.textContent = 'Saving…';
+        status.className = 'form-status';
+
+        fetch('/api/lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.ok) throw new Error(data.error || 'failed');
+            status.textContent = 'Saved — refreshing…';
+            status.className = 'form-status form-status--ok';
+            setTimeout(function () { window.location.reload(); }, 500);
+          })
+          .catch(function () {
+            status.textContent = 'Could not save — please try again.';
+            status.className = 'form-status form-status--err';
+            submitBtn.disabled = false;
+          });
+      });
+    }
   })();
   </script>` : ""}
 </body>

@@ -41,23 +41,33 @@ export async function onRequestPost(context) {
   let leadId;
   try {
     const result = await env.DB.prepare(
-      "INSERT INTO leads (name, phone, email, message, sms_consent, photos) VALUES (?, ?, ?, ?, ?, ?)"
+      "INSERT INTO leads (name, phone, email, message, sms_consent, photos, source) VALUES (?, ?, ?, ?, ?, ?, 'Website')"
     )
       .bind(name, phone, email || null, message, smsConsent, photos.length ? JSON.stringify(photos) : null)
       .run();
     leadId = result && result.meta && result.meta.last_row_id;
   } catch (err) {
-    // Fallback for sites that haven't run the `photos` column migration yet —
-    // retry without it so submissions never silently fail.
+    // Fallback for sites that haven't run the `source` column migration yet.
     try {
       const result = await env.DB.prepare(
-        "INSERT INTO leads (name, phone, email, message, sms_consent) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO leads (name, phone, email, message, sms_consent, photos) VALUES (?, ?, ?, ?, ?, ?)"
       )
-        .bind(name, phone, email || null, message, smsConsent)
+        .bind(name, phone, email || null, message, smsConsent, photos.length ? JSON.stringify(photos) : null)
         .run();
       leadId = result && result.meta && result.meta.last_row_id;
     } catch (err2) {
-      return json({ ok: false, error: "db_error" }, 500);
+      // Fallback for sites that also haven't run the `photos` column migration yet —
+      // retry without it so submissions never silently fail.
+      try {
+        const result = await env.DB.prepare(
+          "INSERT INTO leads (name, phone, email, message, sms_consent) VALUES (?, ?, ?, ?, ?)"
+        )
+          .bind(name, phone, email || null, message, smsConsent)
+          .run();
+        leadId = result && result.meta && result.meta.last_row_id;
+      } catch (err3) {
+        return json({ ok: false, error: "db_error" }, 500);
+      }
     }
   }
 
