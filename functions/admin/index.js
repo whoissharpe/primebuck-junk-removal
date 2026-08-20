@@ -20,33 +20,38 @@ export async function onRequestGet(context) {
   const unauthorized = requireAuth(request, env);
   if (unauthorized) return unauthorized;
 
+  let columns;
+  try {
+    const info = await env.DB.prepare("PRAGMA table_info(leads)").all();
+    columns = new Set((info.results || []).map((c) => c.name));
+  } catch (err) {
+    return new Response("Database error (couldn't read schema): " + err.message, { status: 500 });
+  }
+
+  const hasPhotos = columns.has("photos");
+  const hasContactedCount = columns.has("contacted_count");
+  const hasLastContactedAt = columns.has("last_contacted_at");
+  const hasContactTracking = hasContactedCount && hasLastContactedAt;
+
+  const missing = [];
+  if (!hasContactedCount) missing.push("contacted_count INTEGER DEFAULT 0");
+  if (!hasLastContactedAt) missing.push("last_contacted_at TEXT");
+
+  const selectCols = ["id", "name", "phone", "email", "message", "sms_consent", "created_at"];
+  if (hasPhotos) selectCols.push("photos");
+  if (hasContactTracking) selectCols.push("contacted_count", "last_contacted_at");
+
   let rows = [];
-  let hasContactTracking = true;
   try {
     const result = await env.DB.prepare(
-      "SELECT id, name, phone, email, message, sms_consent, created_at, photos, contacted_count, last_contacted_at FROM leads ORDER BY created_at DESC"
+      `SELECT ${selectCols.join(", ")} FROM leads ORDER BY created_at DESC`
     ).all();
     rows = result.results || [];
   } catch (err) {
-    hasContactTracking = false;
-    try {
-      const result = await env.DB.prepare(
-        "SELECT id, name, phone, email, message, sms_consent, created_at, photos FROM leads ORDER BY created_at DESC"
-      ).all();
-      rows = result.results || [];
-    } catch (err2) {
-      try {
-        const result = await env.DB.prepare(
-          "SELECT id, name, phone, email, message, sms_consent, created_at FROM leads ORDER BY created_at DESC"
-        ).all();
-        rows = result.results || [];
-      } catch (err3) {
-        return new Response("Database error: " + err3.message, { status: 500 });
-      }
-    }
+    return new Response("Database error: " + err.message, { status: 500 });
   }
 
-  return new Response(renderPage(rows, hasContactTracking), {
+  return new Response(renderPage(rows, hasContactTracking, missing), {
     headers: { "content-type": "text/html; charset=utf-8" },
   });
 }
@@ -140,7 +145,7 @@ function renderContactCell(r) {
   `;
 }
 
-function renderPage(rows, hasContactTracking) {
+function renderPage(rows, hasContactTracking, missing) {
   const count = rows.length;
   const thisWeek = rows.filter(r => isThisWeek(r.created_at)).length;
   const smsOptIns = rows.filter(r => r.sms_consent).length;
@@ -150,8 +155,10 @@ function renderPage(rows, hasContactTracking) {
   const contactTh = hasContactTracking ? `<th>Contact</th>` : "";
   const migrationNotice = hasContactTracking ? "" : `
     <div class="notice">
-      Contact tracking isn't set up yet. Run this once in the Cloudflare D1 SQL console:
-      <code>ALTER TABLE leads ADD COLUMN contacted_count INTEGER DEFAULT 0; ALTER TABLE leads ADD COLUMN last_contacted_at TEXT;</code>
+      Contact tracking isn't fully set up — missing column${missing.length > 1 ? "s" : ""}: <strong>${esc(missing.map(m => m.split(" ")[0]).join(", "))}</strong>.
+      Run these <em>one at a time</em> (separately, not pasted together) in the Cloudflare D1 SQL console:
+      ${missing.map(m => `<code>ALTER TABLE leads ADD COLUMN ${esc(m)};</code>`).join("")}
+      Then refresh this page. If a column already exists you'll get a harmless "duplicate column name" error on that one — that's fine, it means it's already there.
     </div>`;
 
   const body = rows.length
