@@ -221,11 +221,12 @@ function renderPage(rows, hasContactTracking, missing) {
   .wrap{max-width:88rem;margin:0 auto;position:relative;z-index:1}
 
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:.85rem}
-  .brand__mark{width:2.75rem;height:2.75rem;object-fit:contain;flex:none;display:block}
-  .brand__text{line-height:1.25}
-  .brand__text .biz{font-family:var(--display);font-weight:800;font-size:1.02rem}
-  .brand__text .tag{color:var(--muted);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+  .brand{display:flex;align-items:center;gap:1rem}
+  .brand__lockup{height:2.6rem;width:auto;display:block;flex:none}
+  .brand__tag{
+    color:var(--muted);font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;
+    padding-left:1rem;border-left:1px solid var(--line);
+  }
 
   /* ---------- background watermark ---------- */
   .bg-buck{
@@ -362,11 +363,8 @@ function renderPage(rows, hasContactTracking, missing) {
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <img class="brand__mark" src="/assets/logo.png" alt="Prime Buck Junk Removal" width="44" height="44">
-        <div class="brand__text">
-          <div class="biz">Prime Buck Junk Removal</div>
-          <div class="tag">Admin dashboard</div>
-        </div>
+        <img class="brand__lockup" src="/assets/lockup-nav.png" alt="Prime Buck Junk Removal" width="180" height="53">
+        <span class="brand__tag">Admin dashboard</span>
       </div>
     </div>
 
