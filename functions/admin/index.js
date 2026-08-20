@@ -17,11 +17,19 @@ export async function onRequestGet(context) {
   let rows = [];
   try {
     const result = await env.DB.prepare(
-      "SELECT id, name, phone, email, message, sms_consent, created_at FROM leads ORDER BY created_at DESC"
+      "SELECT id, name, phone, email, message, sms_consent, created_at, photos FROM leads ORDER BY created_at DESC"
     ).all();
     rows = result.results || [];
   } catch (err) {
-    return new Response("Database error: " + err.message, { status: 500 });
+    // Older schema without the `photos` column yet — fall back gracefully.
+    try {
+      const result = await env.DB.prepare(
+        "SELECT id, name, phone, email, message, sms_consent, created_at FROM leads ORDER BY created_at DESC"
+      ).all();
+      rows = result.results || [];
+    } catch (err2) {
+      return new Response("Database error: " + err2.message, { status: 500 });
+    }
   }
 
   return new Response(renderPage(rows), {
@@ -43,6 +51,20 @@ function isAuthorized(header, expected) {
   return pass === expected;
 }
 
+function renderPhotos(raw) {
+  if (!raw) return `<span class="empty-cell">—</span>`;
+  let list;
+  try {
+    list = JSON.parse(raw);
+  } catch {
+    return `<span class="empty-cell">—</span>`;
+  }
+  if (!Array.isArray(list) || !list.length) return `<span class="empty-cell">—</span>`;
+  return `<div class="thumbs">` + list.map(src =>
+    `<a href="${esc(src)}" target="_blank" rel="noopener"><img class="thumb" src="${esc(src)}" alt="Photo attached to request" loading="lazy"></a>`
+  ).join("") + `</div>`;
+}
+
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -57,11 +79,12 @@ function renderPage(rows) {
           <td class="nowrap">${esc(fmtDate(r.created_at))}</td>
           <td>${esc(r.name)}</td>
           <td><a href="tel:${esc(r.phone.replace(/[^\d+]/g,''))}">${esc(r.phone)}</a></td>
-          <td><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></td>
+          <td>${r.email ? `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>` : `<span class="empty-cell">—</span>`}</td>
           <td class="msg">${esc(r.message)}</td>
           <td class="nowrap">${r.sms_consent ? "Yes" : "No"}</td>
+          <td>${renderPhotos(r.photos)}</td>
         </tr>`).join("")
-    : `<tr><td colspan="6" class="empty">No submissions yet. New quote requests will appear here automatically.</td></tr>`;
+    : `<tr><td colspan="7" class="empty">No submissions yet. New quote requests will appear here automatically.</td></tr>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -92,6 +115,9 @@ function renderPage(rows) {
   .empty{text-align:center;color:var(--muted);padding:3rem 1rem}
   .count{display:inline-block;background:var(--clay);color:var(--bone);
     border-radius:2px;padding:.15rem .55rem;font-size:.78rem;margin-left:.5rem}
+  .empty-cell{color:var(--muted)}
+  .thumbs{display:flex;gap:.4rem;flex-wrap:wrap}
+  .thumb{width:52px;height:52px;object-fit:cover;border-radius:2px;border:1px solid var(--line);display:block}
 </style>
 </head>
 <body>
@@ -100,7 +126,7 @@ function renderPage(rows) {
     <p class="sub">Prime Buck Junk Removal — newest first</p>
     <table>
       <thead>
-        <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th></tr>
+        <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th></tr>
       </thead>
       <tbody>${body}</tbody>
     </table>

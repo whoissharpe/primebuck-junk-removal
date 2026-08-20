@@ -38,7 +38,10 @@
       <a href="#gallery">Gallery</a>
       <a href="#faq">FAQ</a>
     </nav>
-    <a class="btn btn--call" href="tel:19049135596">Call (904) 913-5596</a>
+    <div class="nav__cta">
+      <a class="btn btn--call" href="tel:19049135596">Call (904) 913-5596</a>
+      <a class="btn btn--book-sm" href="#quote">Get a quote</a>
+    </div>
   </div>
 </header>
 
@@ -69,9 +72,32 @@
         <li>One item or a whole estate</li>
         <li>We do the lifting</li>
       </ul>
+      <p class="hero__badge">Now booking pickups this week across Jacksonville</p>
     </div>
   </div>
 </section>
+
+<!-- ============================ TRUST ROW ============================ -->
+<div class="trustbar">
+  <div class="wrap trustbar__inner">
+    <div class="trustbar__item">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V9l8-6 8 6v12"/><path d="M9 21v-7h6v7"/></svg>
+      Locally owned &amp; operated
+    </div>
+    <div class="trustbar__item">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 8.6 8 11 4.6-2.4 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg>
+      Licensed &amp; insured
+    </div>
+    <div class="trustbar__item">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a5 5 0 0 0-5 5 5 5 0 0 0-5-5 5 5 0 0 0 0 10c2 3 5 6 5 6s3-3 5-6a5 5 0 0 0 0-10Z"/></svg>
+      We donate &amp; recycle what we can
+    </div>
+    <div class="trustbar__item">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Free, no-obligation estimates
+    </div>
+  </div>
+</div>
 
 <!-- ============================ HAUL ============================ -->
 <section class="sect" id="haul">
@@ -83,25 +109,25 @@
 
       <article class="card">
         <svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 18v-5a3 3 0 0 1 6 0v3h12v-3a3 3 0 0 1 6 0v5"/><path d="M4 18h24v6H4z"/><path d="M7 24v3M25 24v3"/></svg>
-        <h3>Furniture removal</h3>
+        <h3><a href="/furniture-removal-jacksonville">Furniture removal</a></h3>
         <p>Couches, beds, dressers, tables and chairs. A single piece or a whole room.</p>
       </article>
 
       <article class="card">
         <svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="8" y="3" width="16" height="26" rx="2"/><path d="M8 13h16"/><path d="M11 8v2M11 17v3"/></svg>
-        <h3>Appliance removal</h3>
+        <h3><a href="/appliance-removal-jacksonville">Appliance removal</a></h3>
         <p>Refrigerators, washers, dryers and the rest of the heavy metal.</p>
       </article>
 
       <article class="card">
         <svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 14 16 4l12 10"/><path d="M7 13v15h18V13"/><path d="M13 28v-8h6v8"/></svg>
-        <h3>Estate cleanout</h3>
+        <h3><a href="/estate-cleanout-jacksonville">Estate cleanout</a></h3>
         <p>Furniture, appliances, personal items and debris, cleared room by room.</p>
       </article>
 
       <article class="card">
         <svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 12 16 5l13 7"/><rect x="6" y="12" width="20" height="16" rx="1"/><path d="M6 17h20M6 22h20"/></svg>
-        <h3>Garage cleanout</h3>
+        <h3><a href="/garage-cleanout-jacksonville">Garage cleanout</a></h3>
         <p>Years of stacked boxes and shelving gone, so the car fits again.</p>
       </article>
 
@@ -213,6 +239,7 @@
 <!-- ============================ QUOTE ============================ -->
 <section class="sect sect--raised" id="quote">
   <div class="wrap">
+    <p class="eyebrow">Now booking pickups this week</p>
     <h2>Ready to clear it out?</h2>
     <p class="lede">Send the details and we will come back with a price. Prefer to talk it through? Call (904) 913-5596.</p>
 
@@ -226,12 +253,21 @@
         <input id="phone" name="phone" type="tel" autocomplete="tel" required maxlength="40">
       </div>
       <div class="field field--full">
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" required maxlength="200">
+        <label for="email">Email <span class="muted">(optional)</span></label>
+        <input id="email" name="email" type="email" autocomplete="email" maxlength="200">
       </div>
       <div class="field field--full">
         <label for="message">What needs to go?</label>
         <textarea id="message" name="message" required maxlength="2000"></textarea>
+      </div>
+      <div class="field field--full field--photos">
+        <label for="photos">Photos <span class="muted">(optional — helps us quote faster)</span></label>
+        <label class="dropzone" for="photos" id="dropzone" tabindex="0">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M7 9l5-5 5 5"/><path d="M12 4v13"/></svg>
+          <span>Tap to add up to 3 photos</span>
+        </label>
+        <input id="photos" name="photos" type="file" accept="image/*" multiple>
+        <div class="photo-previews" id="photoPreviews"></div>
       </div>
       <div class="field--full">
         <label class="consent" for="sms">
@@ -240,7 +276,8 @@
         </label>
       </div>
       <div class="field--full">
-        <button class="btn btn--book" type="submit">Book pickup</button>
+        <button class="btn btn--book" type="submit">Get my free quote</button>
+        <p class="form__reassure">No obligation. We usually reply within an hour during business hours.</p>
         <p class="form__status" id="formStatus" role="status" aria-live="polite"></p>
       </div>
     </form>
@@ -268,10 +305,10 @@
     <div>
       <h4>Services</h4>
       <ul class="foot__links">
-        <li><a href="#haul">Furniture removal</a></li>
-        <li><a href="#haul">Appliance removal</a></li>
-        <li><a href="#haul">Estate cleanout</a></li>
-        <li><a href="#haul">Garage cleanout</a></li>
+        <li><a href="/furniture-removal-jacksonville">Furniture removal</a></li>
+        <li><a href="/appliance-removal-jacksonville">Appliance removal</a></li>
+        <li><a href="/estate-cleanout-jacksonville">Estate cleanout</a></li>
+        <li><a href="/garage-cleanout-jacksonville">Garage cleanout</a></li>
         <li><a href="#haul">Yard waste removal</a></li>
       </ul>
     </div>
@@ -304,11 +341,61 @@
 }
 </script>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Which areas do you serve?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Jacksonville and the surrounding communities, including Jacksonville Beach, Atlantic Beach, Ponte Vedra Beach, Ponte Vedra, St. Augustine, St. Augustine Beach, Orange Park, Fleming Island, St. Johns County and Middleburg. If you are nearby, ask and we will tell you straight away." }
+    },
+    {
+      "@type": "Question",
+      "name": "What furniture will you take?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Furniture removal is our most requested service. Couches, beds, dressers, tables, chairs and other household pieces, whether it is one item or an entire room. Tell us what you have and we will confirm." }
+    },
+    {
+      "@type": "Question",
+      "name": "How is pricing worked out?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Price depends on the volume and size of what is going, meaning how much truck space it takes up. Access matters too. If items are hard to reach or need extra effort to get out, that affects the cost. You get a clear estimate for your specific job before we start." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do you remove appliances?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes, from refrigerators to washers and dryers. We are flexible on timing, so if you need something picked up soon, get in touch and we will work around your availability." }
+    },
+    {
+      "@type": "Question",
+      "name": "What does an estate cleanout include?",
+      "acceptedAnswer": { "@type": "Answer", "text": "We remove furniture, appliances, personal items and general debris from the whole property, working through it room by room. Our crew handles the heavy lifting and the hauling. It is the full solution when a home needs emptying." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can you come on short notice?",
+      "acceptedAnswer": { "@type": "Answer", "text": "We keep scheduling flexible. Whether it is a last minute cleanup or something planned well ahead, we will do our best to fit you in. Get in touch and we will find a time." }
+    }
+  ]
+}
+</script>
+
 <div class="lb" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
   <button class="lb__close" id="lbClose" aria-label="Close">&times;</button>
   <button class="lb__nav lb__prev" id="lbPrev" aria-label="Previous photo">&larr;</button>
   <img id="lbImg" src="" alt="">
   <button class="lb__nav lb__next" id="lbNext" aria-label="Next photo">&rarr;</button>
+</div>
+
+<div class="mobilebar" role="navigation" aria-label="Quick contact">
+  <a class="mobilebar__call" href="tel:19049135596">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    Call
+  </a>
+  <a class="mobilebar__text" href="sms:19049135596">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    Text
+  </a>
 </div>
 
 <script src="script.js"></script>
