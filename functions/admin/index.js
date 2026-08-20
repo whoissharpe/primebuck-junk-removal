@@ -1,54 +1,54 @@
-// GET /admin — password-gated dashboard listing every quote form submission.
+// GET /admin — password-gated dashboard listing every quote form submission,
+// with lightweight CRM features: mark leads contacted, track how many times
+// and when, and filter between "needs contact" and "contacted".
+//
+// Requires two extra D1 columns beyond the base schema (run once in the
+// Cloudflare D1 SQL console):
+//   ALTER TABLE leads ADD COLUMN contacted_count INTEGER DEFAULT 0;
+//   ALTER TABLE leads ADD COLUMN last_contacted_at TEXT;
+// The page degrades gracefully (contact tracking just won't show) if these
+// haven't been added yet.
+//
 // Uses HTTP Basic Auth (browser's native login prompt) checked against the
 // ADMIN_PASSWORD secret set in Pages > Settings > Variables and secrets.
-// Username can be anything; only the password is checked.
+
+import { requireAuth } from "../_lib/auth.js";
 
 export async function onRequestGet(context) {
   const { request, env } = context;
 
-  const auth = request.headers.get("Authorization");
-  if (!isAuthorized(auth, env.ADMIN_PASSWORD)) {
-    return new Response("Authentication required.", {
-      status: 401,
-      headers: { "WWW-Authenticate": 'Basic realm="Prime Buck Admin"' },
-    });
-  }
+  const unauthorized = requireAuth(request, env);
+  if (unauthorized) return unauthorized;
 
   let rows = [];
+  let hasContactTracking = true;
   try {
     const result = await env.DB.prepare(
-      "SELECT id, name, phone, email, message, sms_consent, created_at, photos FROM leads ORDER BY created_at DESC"
+      "SELECT id, name, phone, email, message, sms_consent, created_at, photos, contacted_count, last_contacted_at FROM leads ORDER BY created_at DESC"
     ).all();
     rows = result.results || [];
   } catch (err) {
-    // Older schema without the `photos` column yet — fall back gracefully.
+    hasContactTracking = false;
     try {
       const result = await env.DB.prepare(
-        "SELECT id, name, phone, email, message, sms_consent, created_at FROM leads ORDER BY created_at DESC"
+        "SELECT id, name, phone, email, message, sms_consent, created_at, photos FROM leads ORDER BY created_at DESC"
       ).all();
       rows = result.results || [];
     } catch (err2) {
-      return new Response("Database error: " + err2.message, { status: 500 });
+      try {
+        const result = await env.DB.prepare(
+          "SELECT id, name, phone, email, message, sms_consent, created_at FROM leads ORDER BY created_at DESC"
+        ).all();
+        rows = result.results || [];
+      } catch (err3) {
+        return new Response("Database error: " + err3.message, { status: 500 });
+      }
     }
   }
 
-  return new Response(renderPage(rows), {
+  return new Response(renderPage(rows, hasContactTracking), {
     headers: { "content-type": "text/html; charset=utf-8" },
   });
-}
-
-function isAuthorized(header, expected) {
-  if (!header || !expected) return false;
-  if (!header.startsWith("Basic ")) return false;
-  let decoded;
-  try {
-    decoded = atob(header.slice(6));
-  } catch {
-    return false;
-  }
-  const idx = decoded.indexOf(":");
-  const pass = idx === -1 ? decoded : decoded.slice(idx + 1);
-  return pass === expected;
 }
 
 function esc(s) {
@@ -87,8 +87,7 @@ function fmtPhone(raw) {
 }
 
 function telHref(raw) {
-  const digits = String(raw ?? "").replace(/[^\d+]/g, "");
-  return digits;
+  return String(raw ?? "").replace(/[^\d+]/g, "");
 }
 
 function isNew(iso) {
@@ -127,17 +126,40 @@ function renderMessage(msg) {
   return `<details class="msg-more"><summary>${esc(short)}</summary><p>${esc(full)}</p></details>`;
 }
 
-function renderPage(rows) {
+function renderContactCell(r) {
+  const count = r.contacted_count || 0;
+  const contacted = count > 0;
+  const lastText = contacted && r.last_contacted_at ? `Last: ${esc(fmtDate(r.last_contacted_at))}` : "";
+  return `
+    <div class="contact-cell" data-row-id="${r.id}">
+      <button type="button" class="cbtn cbtn--minus" data-action="dec" aria-label="Decrease contact count" ${contacted ? "" : "disabled"}>−</button>
+      <span class="contact-count ${contacted ? "is-contacted" : ""}">${contacted ? count + "×" : "Not contacted"}</span>
+      <button type="button" class="cbtn cbtn--plus" data-action="inc" aria-label="Mark as contacted">+</button>
+    </div>
+    ${lastText ? `<div class="contact-last">${lastText}</div>` : ""}
+  `;
+}
+
+function renderPage(rows, hasContactTracking) {
   const count = rows.length;
   const thisWeek = rows.filter(r => isThisWeek(r.created_at)).length;
   const smsOptIns = rows.filter(r => r.sms_consent).length;
   const withPhotos = rows.filter(r => parsedPhotos(r.photos).length).length;
+  const needsContact = hasContactTracking ? rows.filter(r => !(r.contacted_count > 0)).length : null;
+
+  const contactTh = hasContactTracking ? `<th>Contact</th>` : "";
+  const migrationNotice = hasContactTracking ? "" : `
+    <div class="notice">
+      Contact tracking isn't set up yet. Run this once in the Cloudflare D1 SQL console:
+      <code>ALTER TABLE leads ADD COLUMN contacted_count INTEGER DEFAULT 0; ALTER TABLE leads ADD COLUMN last_contacted_at TEXT;</code>
+    </div>`;
 
   const body = rows.length
     ? rows.map(r => {
         const photos = parsedPhotos(r.photos);
+        const contacted = hasContactTracking && r.contacted_count > 0;
         return `
-        <tr class="${isNew(r.created_at) ? "is-new" : ""}">
+        <tr class="${isNew(r.created_at) ? "is-new" : ""}" ${hasContactTracking ? `data-contacted="${contacted ? 1 : 0}"` : ""}>
           <td class="nowrap" data-label="Received">
             ${isNew(r.created_at) ? `<span class="badge badge--new">New</span>` : ""}
             ${esc(fmtDate(r.created_at))}
@@ -148,9 +170,10 @@ function renderPage(rows) {
           <td class="msg" data-label="Message">${renderMessage(r.message)}</td>
           <td class="nowrap" data-label="SMS OK">${r.sms_consent ? `<span class="badge badge--yes">Yes</span>` : `<span class="badge badge--no">No</span>`}</td>
           <td data-label="Photos">${photos.length ? renderPhotos(r.photos) : `<span class="empty-cell">—</span>`}</td>
+          ${hasContactTracking ? `<td data-label="Contact">${renderContactCell(r)}</td>` : ""}
         </tr>`;
       }).join("")
-    : `<tr><td colspan="7" class="empty">
+    : `<tr><td colspan="${hasContactTracking ? 8 : 7}" class="empty">
          <svg viewBox="0 0 24 24" aria-hidden="true" class="empty-ico"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M7 9l5-5 5 5"/><path d="M12 4v13"/></svg>
          <p>No submissions yet.</p>
          <p class="muted">New quote requests will appear here automatically.</p>
@@ -188,7 +211,7 @@ function renderPage(rows) {
     padding:2.5rem 1.5rem 5rem;line-height:1.5;
   }
   h1,h2{font-family:var(--display);margin:0;letter-spacing:-.02em}
-  .wrap{max-width:80rem;margin:0 auto}
+  .wrap{max-width:88rem;margin:0 auto}
 
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}
   .brand{display:flex;align-items:center;gap:.7rem}
@@ -204,12 +227,30 @@ function renderPage(rows) {
   h1{font-size:1.9rem}
   .sub{color:var(--muted);font-size:.92rem;margin:.35rem 0 0}
 
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-soft);
-    border-radius:10px;overflow:hidden;margin-bottom:2rem;border:1px solid var(--line-soft)}
+  .notice{
+    margin:1.25rem 0;padding:.9rem 1.1rem;border-radius:8px;font-size:.85rem;
+    background:rgba(198,117,97,.1);border:1px solid rgba(198,117,97,.3);color:var(--bone);
+  }
+  .notice code{display:block;margin-top:.5rem;font-size:.78rem;color:var(--clay-step);
+    white-space:pre-wrap;word-break:break-word;font-family:monospace}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft);
+    border-radius:10px;overflow:hidden;margin:1.5rem 0 1.75rem;border:1px solid var(--line-soft)}
   .stat{background:var(--raised);padding:1.15rem 1.3rem}
   .stat__n{font-family:var(--display);font-size:1.7rem;font-weight:800;letter-spacing:-.02em}
   .stat__label{color:var(--muted);font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;margin-top:.2rem}
-  @media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat--flag .stat__n{color:var(--clay-step)}
+  @media(min-width:640px){.stats{grid-template-columns:repeat(5,1fr)}}
+  @media(max-width:639px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+  .filterbar{display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap}
+  .filter-btn{
+    font-family:var(--body);font-size:.82rem;font-weight:600;color:var(--muted);
+    background:var(--raised);border:1px solid var(--line-soft);border-radius:999px;
+    padding:.5rem 1.05rem;cursor:pointer;transition:all .12s ease;
+  }
+  .filter-btn:hover{color:var(--bone);border-color:var(--line)}
+  .filter-btn.is-active{background:var(--clay);border-color:var(--clay);color:var(--bone)}
 
   .card{
     background:var(--raised);border:1px solid var(--line-soft);border-radius:10px;overflow:hidden;
@@ -235,7 +276,7 @@ function renderPage(rows) {
   }
   .pill-link:hover{border-color:var(--clay-step)}
   .nowrap{white-space:nowrap}
-  .msg{max-width:24rem}
+  .msg{max-width:22rem}
   .msg-more summary{cursor:pointer;list-style:none}
   .msg-more summary::-webkit-details-marker{display:none}
   .msg-more summary::after{content:" ▾";color:var(--muted);font-size:.75rem}
@@ -258,6 +299,20 @@ function renderPage(rows) {
     display:block;transition:transform .15s ease;
   }
   .thumb:hover{transform:scale(1.08)}
+
+  /* ---------- contact tracker ---------- */
+  .contact-cell{display:inline-flex;align-items:center;gap:.5rem}
+  .cbtn{
+    width:1.7rem;height:1.7rem;border-radius:50%;border:1px solid var(--line);
+    background:var(--raised2);color:var(--bone);font-size:1rem;line-height:1;
+    cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+    transition:background-color .12s ease,border-color .12s ease,opacity .12s ease;
+  }
+  .cbtn:hover:not(:disabled){background:var(--clay);border-color:var(--clay)}
+  .cbtn:disabled{opacity:.35;cursor:not-allowed}
+  .contact-count{font-size:.85rem;font-weight:600;color:var(--muted);white-space:nowrap;min-width:5.2rem;text-align:center}
+  .contact-count.is-contacted{color:var(--good)}
+  .contact-last{color:var(--muted);font-size:.74rem;margin-top:.35rem}
 
   .empty{text-align:center;color:var(--muted);padding:4.5rem 1.5rem}
   .empty-ico{width:34px;height:34px;stroke:var(--muted);fill:none;stroke-width:1.6;
@@ -306,22 +361,123 @@ function renderPage(rows) {
     <h1>Quote requests</h1>
     <p class="sub">Newest first — refresh to see new submissions.</p>
 
+    ${migrationNotice}
+
     <div class="stats">
       <div class="stat"><div class="stat__n">${count}</div><div class="stat__label">Total leads</div></div>
       <div class="stat"><div class="stat__n">${thisWeek}</div><div class="stat__label">Past 7 days</div></div>
       <div class="stat"><div class="stat__n">${smsOptIns}</div><div class="stat__label">SMS opt-ins</div></div>
       <div class="stat"><div class="stat__n">${withPhotos}</div><div class="stat__label">With photos</div></div>
+      ${hasContactTracking ? `<div class="stat stat--flag"><div class="stat__n">${needsContact}</div><div class="stat__label">Needs contact</div></div>` : ""}
     </div>
+
+    ${hasContactTracking ? `
+    <div class="filterbar">
+      <button type="button" class="filter-btn is-active" data-filter="all">All</button>
+      <button type="button" class="filter-btn" data-filter="pending">Needs contact</button>
+      <button type="button" class="filter-btn" data-filter="done">Contacted</button>
+    </div>` : ""}
 
     <div class="card">
       <table>
         <thead>
-          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th></tr>
+          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th>${contactTh}</tr>
         </thead>
         <tbody>${body}</tbody>
       </table>
     </div>
   </div>
+
+  ${hasContactTracking ? `<script>
+  (function () {
+    'use strict';
+    var filterBtns = document.querySelectorAll('.filter-btn');
+    var rows = document.querySelectorAll('tbody tr[data-contacted]');
+
+    function applyFilter(f) {
+      rows.forEach(function (tr) {
+        var contacted = tr.getAttribute('data-contacted') === '1';
+        var show = f === 'all' || (f === 'pending' && !contacted) || (f === 'done' && contacted);
+        tr.style.display = show ? '' : 'none';
+      });
+    }
+
+    filterBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        filterBtns.forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        applyFilter(btn.getAttribute('data-filter'));
+      });
+    });
+
+    document.querySelectorAll('.cbtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var cell = btn.closest('.contact-cell');
+        var id = Number(cell.getAttribute('data-row-id'));
+        var delta = btn.getAttribute('data-action') === 'inc' ? 1 : -1;
+        var minus = cell.querySelector('.cbtn--minus');
+        var plus = cell.querySelector('.cbtn--plus');
+        var wasContacted = cell.querySelector('.contact-count').classList.contains('is-contacted');
+        minus.disabled = true;
+        plus.disabled = true;
+
+        fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, delta: delta }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.ok) throw new Error(data.error || 'failed');
+            var countEl = cell.querySelector('.contact-count');
+            var newCount = data.contacted_count || 0;
+            countEl.textContent = newCount > 0 ? newCount + '×' : 'Not contacted';
+            countEl.classList.toggle('is-contacted', newCount > 0);
+            minus.disabled = newCount <= 0;
+
+            var row = cell.closest('tr');
+            row.setAttribute('data-contacted', newCount > 0 ? '1' : '0');
+
+            var lastEl = row.querySelector('.contact-last');
+            if (newCount > 0 && data.last_contacted_at) {
+              var text = 'Last: ' + new Date(data.last_contacted_at.replace(' ', 'T') + 'Z').toLocaleString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+              });
+              if (lastEl) { lastEl.textContent = text; }
+              else {
+                lastEl = document.createElement('div');
+                lastEl.className = 'contact-last';
+                lastEl.textContent = text;
+                cell.parentElement.appendChild(lastEl);
+              }
+            } else if (lastEl) {
+              lastEl.remove();
+            }
+
+            var activeFilter = document.querySelector('.filter-btn.is-active');
+            if (activeFilter) applyFilter(activeFilter.getAttribute('data-filter'));
+
+            var nowContacted = newCount > 0;
+            if (nowContacted !== wasContacted) {
+              var flagEl = document.querySelector('.stat--flag .stat__n');
+              if (flagEl) {
+                var n = parseInt(flagEl.textContent, 10) || 0;
+                flagEl.textContent = String(nowContacted ? Math.max(0, n - 1) : n + 1);
+              }
+            }
+          })
+          .catch(function () {
+            alert('Could not update — please try again.');
+          })
+          .finally(function () {
+            plus.disabled = false;
+            var stillContacted = cell.querySelector('.contact-count').classList.contains('is-contacted');
+            minus.disabled = !stillContacted;
+          });
+      });
+    });
+  })();
+  </script>` : ""}
 </body>
 </html>`;
 }
