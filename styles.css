@@ -26,6 +26,9 @@ body{
 }
 img{max-width:100%;display:block}
 h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.02em;line-height:1.08}
+h1{font-weight:900;letter-spacing:-.035em}
+h2{font-weight:800}
+h3,h4{font-weight:700}
 
 .skip{position:absolute;left:-9999px;top:0;background:var(--bone);color:var(--ground);padding:.75rem 1rem;z-index:100}
 .skip:focus{left:0}
