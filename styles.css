@@ -12,7 +12,7 @@
   --clay-lift:#C8502F;
   --line:rgba(242,238,227,.14);
   --line-soft:rgba(242,238,227,.07);
-  --display:"Archivo","Inter Tight",system-ui,sans-serif;
+  --display:"Inter Tight",system-ui,sans-serif;
   --body:"Inter Tight",system-ui,-apple-system,sans-serif;
   --gutter:clamp(1.25rem,5vw,4.5rem);
   --max:76rem;
