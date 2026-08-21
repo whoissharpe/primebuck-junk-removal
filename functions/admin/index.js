@@ -146,9 +146,10 @@ function renderAddLeadPanel() {
   const options = MANUAL_SOURCES.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
   return `
   <div class="add-lead-panel" id="addLeadPanel" hidden>
-    <h2>Add a lead manually</h2>
-    <p class="sub">For leads that came in by phone, text, referral, etc. — not through the website form.</p>
+    <h2 id="leadPanelTitle">Add a lead manually</h2>
+    <p class="sub" id="leadPanelSub">For leads that came in by phone, text, referral, etc. — not through the website form.</p>
     <form id="addLeadForm" class="add-lead-form" novalidate>
+      <input type="hidden" id="al-id" name="id" value="">
       <div class="field">
         <label for="al-name">Name</label>
         <input id="al-name" name="name" type="text" required maxlength="120">
@@ -180,7 +181,7 @@ function renderAddLeadPanel() {
         </label>
       </div>
       <div class="field--full add-lead-actions">
-        <button type="submit" class="btn-primary">Save lead</button>
+        <button type="submit" class="btn-primary" id="leadPanelSubmit">Save lead</button>
         <button type="button" class="btn-secondary" id="addLeadCancel">Cancel</button>
         <p class="form-status" id="addLeadStatus" role="status" aria-live="polite"></p>
       </div>
@@ -238,9 +239,15 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
           <td data-label="Photos">${photos.length ? renderPhotos(r.photos) : `<span class="empty-cell">—</span>`}</td>
           ${hasContactTracking ? `<td data-label="Contact">${renderContactCell(r)}</td>` : ""}
           ${hasSource ? `<td class="nowrap" data-label="Source">${renderSourceBadge(source)}</td>` : ""}
+          <td class="nowrap" data-label="Actions">
+            <div class="row-actions">
+              ${hasSource ? `<button type="button" class="row-btn row-btn--edit" data-id="${r.id}" data-name="${esc(r.name)}" data-phone="${esc(r.phone)}" data-email="${esc(r.email || "")}" data-message="${esc(r.message)}" data-source="${esc(source || "")}" data-sms="${r.sms_consent ? 1 : 0}">Edit</button>` : ""}
+              <button type="button" class="row-btn row-btn--delete" data-id="${r.id}" data-name="${esc(r.name)}">Delete</button>
+            </div>
+          </td>
         </tr>`;
       }).join("")
-    : `<tr><td colspan="${6 + (hasContactTracking ? 1 : 0) + (hasSource ? 1 : 0) + 1}" class="empty">
+    : `<tr><td colspan="${7 + (hasContactTracking ? 1 : 0) + (hasSource ? 1 : 0)}" class="empty">
          <svg viewBox="0 0 24 24" aria-hidden="true" class="empty-ico"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M7 9l5-5 5 5"/><path d="M12 4v13"/></svg>
          <p>No submissions yet.</p>
          <p class="muted">New quote requests will appear here automatically.</p>
@@ -375,6 +382,16 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
   .badge--source-web{background:rgba(242,238,227,.08);color:var(--muted)}
   .badge--source-manual{background:rgba(198,117,97,.16);color:var(--clay-step)}
 
+  .row-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+  .row-btn{
+    font-family:var(--body);font-size:.8rem;font-weight:600;
+    background:transparent;border:1px solid var(--line);border-radius:6px;
+    padding:.4rem .75rem;cursor:pointer;transition:all .12s ease;color:var(--muted);
+  }
+  .row-btn--edit:hover{color:var(--bone);border-color:var(--bone)}
+  .row-btn--delete{color:var(--clay-step);border-color:rgba(198,117,97,.35)}
+  .row-btn--delete:hover{background:var(--clay);border-color:var(--clay);color:var(--bone)}
+
   .card{
     background:var(--raised);border:1px solid var(--line-soft);border-radius:10px;overflow:hidden;
     box-shadow:0 18px 40px rgba(0,0,0,.25);
@@ -508,7 +525,7 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
     <div class="card">
       <table>
         <thead>
-          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th>${contactTh}${sourceTh}</tr>
+          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th>${contactTh}${sourceTh}<th>Actions</th></tr>
         </thead>
         <tbody>${body}</tbody>
       </table>
@@ -604,15 +621,32 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
       });
     });
 
-    // ---- Add lead panel ----
+    // ---- Add / edit lead panel ----
     var addLeadBtn = document.getElementById('addLeadBtn');
     var addLeadPanel = document.getElementById('addLeadPanel');
     var addLeadCancel = document.getElementById('addLeadCancel');
     var addLeadForm = document.getElementById('addLeadForm');
+    var panelTitle = document.getElementById('leadPanelTitle');
+    var panelSub = document.getElementById('leadPanelSub');
+    var panelSubmit = document.getElementById('leadPanelSubmit');
+    var sourceField = document.getElementById('al-source');
+
+    function resetPanelToAddMode() {
+      addLeadForm.reset();
+      document.getElementById('al-id').value = '';
+      if (panelTitle) panelTitle.textContent = 'Add a lead manually';
+      if (panelSub) panelSub.textContent = 'For leads that came in by phone, text, referral, etc. — not through the website form.';
+      if (panelSubmit) panelSubmit.textContent = 'Save lead';
+      if (sourceField) sourceField.disabled = false;
+      var status = document.getElementById('addLeadStatus');
+      if (status) { status.textContent = ''; status.className = 'form-status'; }
+    }
 
     if (addLeadBtn && addLeadPanel) {
       addLeadBtn.addEventListener('click', function () {
-        addLeadPanel.hidden = !addLeadPanel.hidden;
+        var wasHidden = addLeadPanel.hidden;
+        resetPanelToAddMode();
+        addLeadPanel.hidden = !wasHidden;
         if (!addLeadPanel.hidden) {
           var nameField = document.getElementById('al-name');
           if (nameField) nameField.focus();
@@ -622,16 +656,73 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
     if (addLeadCancel && addLeadPanel && addLeadForm) {
       addLeadCancel.addEventListener('click', function () {
         addLeadPanel.hidden = true;
-        addLeadForm.reset();
-        var status = document.getElementById('addLeadStatus');
-        if (status) { status.textContent = ''; status.className = 'form-status'; }
+        resetPanelToAddMode();
       });
     }
+
+    // Edit buttons — prefill the panel from the row's data attributes.
+    document.querySelectorAll('.row-btn--edit').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        resetPanelToAddMode();
+        document.getElementById('al-id').value = btn.getAttribute('data-id');
+        document.getElementById('al-name').value = btn.getAttribute('data-name') || '';
+        document.getElementById('al-phone').value = btn.getAttribute('data-phone') || '';
+        document.getElementById('al-email').value = btn.getAttribute('data-email') || '';
+        document.getElementById('al-message').value = btn.getAttribute('data-message') || '';
+        document.getElementById('al-sms').checked = btn.getAttribute('data-sms') === '1';
+
+        var leadSource = btn.getAttribute('data-source') || '';
+        if (sourceField) {
+          if (leadSource === 'Website') {
+            // Website leads keep their source locked — show it but disable changing it.
+            var websiteOption = sourceField.querySelector('option[value="Website"]');
+            if (websiteOption) websiteOption.disabled = false;
+            sourceField.value = 'Website';
+            sourceField.disabled = true;
+            if (websiteOption) websiteOption.disabled = true; // restore lock on the option itself
+          } else {
+            sourceField.disabled = false;
+            sourceField.value = leadSource;
+          }
+        }
+
+        if (panelTitle) panelTitle.textContent = 'Edit lead';
+        if (panelSub) panelSub.textContent = 'Editing ' + (btn.getAttribute('data-name') || 'this lead') + '.' + (leadSource === 'Website' ? ' Source is locked for website leads.' : '');
+        if (panelSubmit) panelSubmit.textContent = 'Save changes';
+
+        addLeadPanel.hidden = false;
+        addLeadPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('al-name').focus();
+      });
+    });
+
+    // Delete buttons.
+    document.querySelectorAll('.row-btn--delete').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-id');
+        var name = btn.getAttribute('data-name') || 'this lead';
+        if (!window.confirm('Delete the lead for ' + name + '? This cannot be undone.')) return;
+
+        btn.disabled = true;
+        fetch('/api/lead/' + encodeURIComponent(id), { method: 'DELETE' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.ok) throw new Error(data.error || 'failed');
+            window.location.reload();
+          })
+          .catch(function () {
+            alert('Could not delete — please try again.');
+            btn.disabled = false;
+          });
+      });
+    });
+
     if (addLeadForm) {
       addLeadForm.addEventListener('submit', function (e) {
         e.preventDefault();
         var status = document.getElementById('addLeadStatus');
         var submitBtn = addLeadForm.querySelector('button[type="submit"]');
+        var editId = document.getElementById('al-id').value;
         var payload = {
           name: addLeadForm.name.value.trim(),
           phone: addLeadForm.phone.value.trim(),
@@ -640,7 +731,8 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
           source: addLeadForm.source.value,
           smsConsent: addLeadForm.sms_consent.checked,
         };
-        if (!payload.name || !payload.phone || !payload.message || !payload.source) {
+        var needsSource = !editId || (sourceField && !sourceField.disabled);
+        if (!payload.name || !payload.phone || !payload.message || (needsSource && !payload.source)) {
           status.textContent = 'Please fill in name, phone, source and message.';
           status.className = 'form-status form-status--err';
           return;
@@ -649,8 +741,11 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
         status.textContent = 'Saving…';
         status.className = 'form-status';
 
-        fetch('/api/lead', {
-          method: 'POST',
+        var url = editId ? '/api/lead/' + encodeURIComponent(editId) : '/api/lead';
+        var method = editId ? 'PUT' : 'POST';
+
+        fetch(url, {
+          method: method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
