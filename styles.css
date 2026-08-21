@@ -12,7 +12,7 @@
   --clay-lift:#C8502F;
   --line:rgba(242,238,227,.14);
   --line-soft:rgba(242,238,227,.07);
-  --display:"Cabinet Grotesk","Inter Tight",system-ui,sans-serif;
+  --display:"Archivo","Inter Tight",system-ui,sans-serif;
   --body:"Inter Tight",system-ui,-apple-system,sans-serif;
   --gutter:clamp(1.25rem,5vw,4.5rem);
   --max:76rem;
@@ -25,8 +25,8 @@ body{
   font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased;
 }
 img{max-width:100%;display:block}
-h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.02em;line-height:1.08}
-h1{font-weight:900;letter-spacing:-.035em}
+h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.01em;line-height:1.08}
+h1{font-weight:900;letter-spacing:-.01em}
 h2{font-weight:800}
 h3,h4{font-weight:700}
 

@@ -263,17 +263,15 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32">
 <link rel="icon" href="/assets/favicon.png" sizes="64x64">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f%5B%5D=cabinet-grotesk@900,800,700&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Inter+Tight:wght@400;500;600;700&display=swap">
 <style>
   :root{
     --ground:#131A0E; --raised:#1B2614; --raised2:#202D18; --bone:#F2EEE3;
     --muted:#A8B39C; --clay:#B5462F; --clay-lift:#C8502F; --clay-step:#C67561;
     --line:rgba(242,238,227,.14); --line-soft:rgba(242,238,227,.07);
-    --display:"Cabinet Grotesk","Inter Tight",system-ui,sans-serif;
+    --display:"Archivo","Inter Tight",system-ui,sans-serif;
     --body:"Inter Tight",system-ui,-apple-system,sans-serif;
     --good:#5FAE72; --good-bg:rgba(95,174,114,.14);
   }
@@ -288,7 +286,7 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
     padding:2.5rem 1.5rem 5rem;line-height:1.5;
   }
   h1,h2{font-family:var(--display);margin:0;letter-spacing:-.02em}
-  h1{font-weight:900;letter-spacing:-.035em}
+  h1{font-weight:900;letter-spacing:-.01em}
   h2{font-weight:800}
   h1,h2,.sub,.brand__tag,.stat__n,.stat__label,th,.badge,.filter-btn{
     -webkit-user-select:none;user-select:none;cursor:default;caret-color:transparent;
