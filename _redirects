@@ -1,0 +1,65 @@
+# Redirects from the old primebuckjunkremoval.com URL structure to the new
+# site, so indexed pages and any existing backlinks don't just 404 once the
+# domain is pointed here. 301 = permanent redirect (tells Google to transfer
+# ranking credit to the new URL).
+
+# Services
+/what-we-do/                        /#haul                              301
+/what-we-do                         /#haul                              301
+/what-we-do/appliance-removal/      /appliance-removal-jacksonville     301
+/what-we-do/appliance-removal       /appliance-removal-jacksonville     301
+/what-we-do/furniture-removal/      /furniture-removal-jacksonville     301
+/what-we-do/furniture-removal       /furniture-removal-jacksonville     301
+/what-we-do/estate-cleanout/        /estate-cleanout-jacksonville       301
+/what-we-do/estate-cleanout         /estate-cleanout-jacksonville       301
+/what-we-do/garage-cleanout/        /garage-cleanout-jacksonville       301
+/what-we-do/garage-cleanout         /garage-cleanout-jacksonville       301
+/what-we-do/construction-cleanup/   /#haul                              301
+/what-we-do/construction-cleanup    /#haul                              301
+/what-we-do/debris-removal/         /#haul                              301
+/what-we-do/debris-removal          /#haul                              301
+/what-we-do/yard-waste-removal/     /#haul                              301
+/what-we-do/yard-waste-removal      /#haul                              301
+/what-we-do/hauling-service/        /#haul                              301
+/what-we-do/hauling-service         /#haul                              301
+
+# Service areas
+/service-areas/                     /#areas                             301
+/service-areas                      /#areas                             301
+/service-areas/jacksonville/        /junk-removal-jacksonville          301
+/service-areas/jacksonville         /junk-removal-jacksonville          301
+/service-areas/jacksonville-beach/  /junk-removal-jacksonville-beach    301
+/service-areas/jacksonville-beach   /junk-removal-jacksonville-beach    301
+/service-areas/atlantic-beach/      /junk-removal-atlantic-beach        301
+/service-areas/atlantic-beach       /junk-removal-atlantic-beach        301
+/service-areas/ponte-vedra-beach/   /junk-removal-ponte-vedra-beach     301
+/service-areas/ponte-vedra-beach    /junk-removal-ponte-vedra-beach     301
+/service-areas/ponte-vedra/         /junk-removal-ponte-vedra           301
+/service-areas/ponte-vedra          /junk-removal-ponte-vedra           301
+/service-areas/st-augustine/        /junk-removal-st-augustine          301
+/service-areas/st-augustine         /junk-removal-st-augustine          301
+/service-areas/st-augustine-beach/  /junk-removal-st-augustine-beach    301
+/service-areas/st-augustine-beach   /junk-removal-st-augustine-beach    301
+/service-areas/orange-park/         /junk-removal-orange-park           301
+/service-areas/orange-park          /junk-removal-orange-park           301
+/service-areas/fleming-island/      /junk-removal-fleming-island        301
+/service-areas/fleming-island       /junk-removal-fleming-island        301
+/service-areas/st-johns-county/     /junk-removal-st-johns-county       301
+/service-areas/st-johns-county      /junk-removal-st-johns-county       301
+/service-areas/middleburg/          /junk-removal-middleburg            301
+/service-areas/middleburg           /junk-removal-middleburg            301
+
+# Other pages
+/about/                             /                                   301
+/about                              /                                   301
+/gallery/                           /#gallery                           301
+/gallery                            /#gallery                           301
+/reviews/                           /#reviews                           301
+/reviews                            /#reviews                           301
+/faq/                               /#faq                               301
+/faq                                /#faq                                301
+/contact/                           /#quote                             301
+/contact                            /#quote                             301
+/privacy/                           /privacy                            301
+/terms/                             /terms                              301
+/accessibility/                     /accessibility                      301

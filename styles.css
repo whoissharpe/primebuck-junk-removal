@@ -227,6 +227,15 @@ h3{font-size:1.1rem}
 @media(min-width:760px){.areas{grid-template-columns:repeat(4,1fr)}}
 .areas li{border-top:1px solid rgba(242,238,227,.2);padding:.8rem .5rem .8rem 0;font-size:.95rem}
 
+/* ---------- reviews ---------- */
+.reviews{display:grid;gap:1px;background:var(--line-soft);margin-top:2.75rem;grid-template-columns:1fr}
+@media(min-width:700px){.reviews{grid-template-columns:repeat(2,1fr)}}
+.review{background:var(--ground);padding:1.8rem 1.6rem;margin:0}
+.review__stars{color:var(--clay-step);font-size:1.1rem;letter-spacing:.15em;margin-bottom:.9rem}
+.review blockquote{margin:0 0 1.1rem;font-size:1rem;line-height:1.6;color:var(--bone)}
+.review figcaption{font-size:.85rem;font-weight:600;color:var(--muted)}
+.reviews__cta{display:flex;gap:1rem;flex-wrap:wrap;margin-top:2rem}
+
 /* ---------- faq ---------- */
 .faq{margin-top:2.25rem;border-top:1px solid var(--line-soft)}
 .faq details{border-bottom:1px solid var(--line-soft)}
@@ -305,9 +314,12 @@ h3{font-size:1.1rem}
 /* ---------- footer ---------- */
 .foot{background:var(--raised);padding-block:clamp(3rem,6vw,4.5rem) 2.25rem;border-top:1px solid var(--line-soft)}
 .foot__grid{display:grid;gap:2.25rem;grid-template-columns:1fr}
-@media(min-width:760px){.foot__grid{grid-template-columns:1.4fr 1fr 1fr}}
+@media(min-width:760px){.foot__grid{grid-template-columns:1.3fr 1fr 1fr 1fr}}
 .foot h4{font-size:.72rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 .9rem}
 .foot__links{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.foot__social{display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem}
+.foot__social a{font-size:.85rem;color:var(--muted);text-decoration:none;border-bottom:1px solid transparent}
+.foot__social a:hover{color:var(--bone);border-bottom-color:var(--clay-step)}
 .foot a{color:var(--bone);text-decoration:none;font-size:.93rem}
 .foot a:hover{text-decoration:underline}
 .tel{font-size:1.05rem;font-weight:600}
