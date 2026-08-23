@@ -300,6 +300,12 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
     color:var(--muted);font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;
     padding-left:1rem;border-left:1px solid var(--line);
   }
+  .logout-link{
+    color:var(--muted);font-size:.85rem;font-weight:600;text-decoration:none;
+    border:1px solid var(--line);border-radius:999px;padding:.5rem 1.1rem;
+    transition:all .12s ease;flex:none;
+  }
+  .logout-link:hover{color:var(--bone);border-color:var(--clay-step)}
 
   /* ---------- background watermark ---------- */
   .bg-buck{
@@ -497,6 +503,7 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
         <img class="brand__lockup" src="/assets/lockup-nav.png" alt="Prime Buck Junk Removal" width="180" height="53">
         <span class="brand__tag">Admin dashboard</span>
       </div>
+      <a class="logout-link" href="/admin/logout">Log out</a>
     </div>
 
     <h1>Quote requests</h1>
