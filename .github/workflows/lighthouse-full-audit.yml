@@ -1,0 +1,40 @@
+name: Lighthouse Full Site Audit
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g @lhci/cli@0.13.x
+      - name: Audit all pages
+        run: |
+          lhci collect \
+            --url=https://primebuck-junk-removal.pages.dev/index.html \
+            --url=https://primebuck-junk-removal.pages.dev/furniture-removal-jacksonville.html \
+            --url=https://primebuck-junk-removal.pages.dev/appliance-removal-jacksonville.html \
+            --url=https://primebuck-junk-removal.pages.dev/estate-cleanout-jacksonville.html \
+            --url=https://primebuck-junk-removal.pages.dev/garage-cleanout-jacksonville.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-jacksonville.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-atlantic-beach.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-fleming-island.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-jacksonville-beach.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-middleburg.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-orange-park.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-ponte-vedra-beach.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-ponte-vedra.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-st-augustine-beach.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-st-augustine.html \
+            --url=https://primebuck-junk-removal.pages.dev/junk-removal-st-johns-county.html \
+            --url=https://primebuck-junk-removal.pages.dev/privacy.html \
+            --url=https://primebuck-junk-removal.pages.dev/terms.html \
+            --url=https://primebuck-junk-removal.pages.dev/accessibility.html \
+            --numberOfRuns=1
+      - run: lhci assert --preset=lighthouse:no-pwa || true
