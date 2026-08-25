@@ -36,5 +36,6 @@ jobs:
             --url=https://primebuck-junk-removal.pages.dev/privacy.html \
             --url=https://primebuck-junk-removal.pages.dev/terms.html \
             --url=https://primebuck-junk-removal.pages.dev/accessibility.html \
-            --numberOfRuns=1
+            --numberOfRuns=1 \
+            --collect.staticDistDir=
       - run: lhci assert --preset=lighthouse:no-pwa || true
