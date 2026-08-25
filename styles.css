@@ -9,6 +9,7 @@
   font-weight:100 900;
   font-style:normal;
   font-display:swap;
+  font-display:swap;
 }
 
 :root{
@@ -192,7 +193,7 @@ h3{font-size:1.1rem}
 
 @media (prefers-reduced-motion:reduce){
   .hero__video{display:none}
-  .hero__bg{background-image:url("https://d2ol7oe51mr4n9.cloudfront.net/user_3GGqBW4zpaaDAVr4CQwHyT8geRQ/1b1e936a-3a0d-45a4-ae5f-2948557972c9.jpg");background-size:cover;background-position:center}
+  .hero__bg{background-image:url("assets/gallery/1b1e936a-3a0d-45a4-ae5f-2948557972c9.webp");background-size:cover;background-position:center}
 }
 
 /* ---------- cards ---------- */
