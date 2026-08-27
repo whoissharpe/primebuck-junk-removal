@@ -2,12 +2,13 @@
 // with lightweight CRM features: mark leads contacted, track how many times
 // and when, and filter between "needs contact" and "contacted".
 //
-// Requires two extra D1 columns beyond the base schema (run once in the
-// Cloudflare D1 SQL console):
+// Requires a few extra D1 columns beyond the base schema (run once in the
+// Cloudflare D1 SQL console, one statement at a time):
 //   ALTER TABLE leads ADD COLUMN contacted_count INTEGER DEFAULT 0;
 //   ALTER TABLE leads ADD COLUMN last_contacted_at TEXT;
-// The page degrades gracefully (contact tracking just won't show) if these
-// haven't been added yet.
+//   ALTER TABLE leads ADD COLUMN notes TEXT;
+// The page degrades gracefully (the related feature just won't show) if
+// these haven't been added yet.
 //
 // Uses HTTP Basic Auth (browser's native login prompt) checked against the
 // ADMIN_PASSWORD secret set in Pages > Settings > Variables and secrets.
@@ -33,16 +34,19 @@ export async function onRequestGet(context) {
   const hasLastContactedAt = columns.has("last_contacted_at");
   const hasContactTracking = hasContactedCount && hasLastContactedAt;
   const hasSource = columns.has("source");
+  const hasNotes = columns.has("notes");
 
   const missing = [];
   if (!hasContactedCount) missing.push("contacted_count INTEGER DEFAULT 0");
   if (!hasLastContactedAt) missing.push("last_contacted_at TEXT");
   if (!hasSource) missing.push("source TEXT DEFAULT 'Website'");
+  if (!hasNotes) missing.push("notes TEXT");
 
   const selectCols = ["id", "name", "phone", "email", "message", "sms_consent", "created_at"];
   if (hasPhotos) selectCols.push("photos");
   if (hasContactTracking) selectCols.push("contacted_count", "last_contacted_at");
   if (hasSource) selectCols.push("source");
+  if (hasNotes) selectCols.push("notes");
 
   let rows = [];
   try {
@@ -54,7 +58,7 @@ export async function onRequestGet(context) {
     return new Response("Database error: " + err.message, { status: 500 });
   }
 
-  return new Response(renderPage(rows, hasContactTracking, hasSource, missing), {
+  return new Response(renderPage(rows, hasContactTracking, hasSource, hasNotes, missing), {
     headers: { "content-type": "text/html; charset=utf-8" },
   });
 }
@@ -134,6 +138,13 @@ function renderMessage(msg) {
   return `<details class="msg-more"><summary>${esc(short)}</summary><p>${esc(full)}</p></details>`;
 }
 
+function renderNotes(notes) {
+  if (!notes) return `<span class="empty-cell">—</span>`;
+  const { short, full } = truncate(notes, 60);
+  if (!full) return `<span class="notes-text">${esc(short)}</span>`;
+  return `<details class="msg-more"><summary>${esc(short)}</summary><p>${esc(full)}</p></details>`;
+}
+
 const MANUAL_SOURCES = ["Phone call", "Text", "Referral", "Facebook", "Instagram", "Google", "Walk-in", "Other"];
 
 function renderSourceBadge(source) {
@@ -174,6 +185,10 @@ function renderAddLeadPanel() {
         <label for="al-message">What needs to go?</label>
         <textarea id="al-message" name="message" required maxlength="2000"></textarea>
       </div>
+      <div class="field field--full">
+        <label for="al-notes">Notes <span class="muted">(internal — not shown to the customer)</span></label>
+        <textarea id="al-notes" name="notes" maxlength="2000" placeholder="Access notes, follow-up reminders, pricing quoted, etc."></textarea>
+      </div>
       <div class="field--full">
         <label class="consent" for="al-sms">
           <input id="al-sms" name="sms_consent" type="checkbox" value="yes">
@@ -203,7 +218,7 @@ function renderContactCell(r) {
   `;
 }
 
-function renderPage(rows, hasContactTracking, hasSource, missing) {
+function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
   const count = rows.length;
   const thisWeek = rows.filter(r => isThisWeek(r.created_at)).length;
   const smsOptIns = rows.filter(r => r.sms_consent).length;
@@ -212,6 +227,7 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
 
   const contactTh = hasContactTracking ? `<th>Contact</th>` : "";
   const sourceTh = hasSource ? `<th>Source</th>` : "";
+  const notesTh = hasNotes ? `<th>Notes</th>` : "";
   const featureNotice = missing.length === 0 ? "" : `
     <div class="notice">
       A couple of features aren't fully set up — missing column${missing.length > 1 ? "s" : ""}: <strong>${esc(missing.map(m => m.split(" ")[0]).join(", "))}</strong>.
@@ -239,15 +255,16 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
           <td data-label="Photos">${photos.length ? renderPhotos(r.photos) : `<span class="empty-cell">—</span>`}</td>
           ${hasContactTracking ? `<td data-label="Contact">${renderContactCell(r)}</td>` : ""}
           ${hasSource ? `<td class="nowrap" data-label="Source">${renderSourceBadge(source)}</td>` : ""}
+          ${hasNotes ? `<td class="msg" data-label="Notes">${renderNotes(r.notes)}</td>` : ""}
           <td class="nowrap" data-label="Actions">
             <div class="row-actions">
-              ${hasSource ? `<button type="button" class="row-btn row-btn--edit" data-id="${r.id}" data-name="${esc(r.name)}" data-phone="${esc(r.phone)}" data-email="${esc(r.email || "")}" data-message="${esc(r.message)}" data-source="${esc(source || "")}" data-sms="${r.sms_consent ? 1 : 0}">Edit</button>` : ""}
+              ${hasSource ? `<button type="button" class="row-btn row-btn--edit" data-id="${r.id}" data-name="${esc(r.name)}" data-phone="${esc(r.phone)}" data-email="${esc(r.email || "")}" data-message="${esc(r.message)}" data-source="${esc(source || "")}" data-notes="${esc(r.notes || "")}" data-sms="${r.sms_consent ? 1 : 0}">Edit</button>` : ""}
               <button type="button" class="row-btn row-btn--delete" data-id="${r.id}" data-name="${esc(r.name)}">Delete</button>
             </div>
           </td>
         </tr>`;
       }).join("")
-    : `<tr><td colspan="${7 + (hasContactTracking ? 1 : 0) + (hasSource ? 1 : 0)}" class="empty">
+    : `<tr><td colspan="${7 + (hasContactTracking ? 1 : 0) + (hasSource ? 1 : 0) + (hasNotes ? 1 : 0)}" class="empty">
          <svg viewBox="0 0 24 24" aria-hidden="true" class="empty-ico"><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/><path d="M7 9l5-5 5 5"/><path d="M12 4v13"/></svg>
          <p>No submissions yet.</p>
          <p class="muted">New quote requests will appear here automatically.</p>
@@ -540,7 +557,7 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
     <div class="card">
       <table>
         <thead>
-          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th>${contactTh}${sourceTh}<th>Actions</th></tr>
+          <tr><th>Received</th><th>Name</th><th>Phone</th><th>Email</th><th>Message</th><th>SMS OK</th><th>Photos</th>${contactTh}${sourceTh}${notesTh}<th>Actions</th></tr>
         </thead>
         <tbody>${body}</tbody>
       </table>
@@ -684,6 +701,8 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
         document.getElementById('al-phone').value = btn.getAttribute('data-phone') || '';
         document.getElementById('al-email').value = btn.getAttribute('data-email') || '';
         document.getElementById('al-message').value = btn.getAttribute('data-message') || '';
+        var notesField = document.getElementById('al-notes');
+        if (notesField) notesField.value = btn.getAttribute('data-notes') || '';
         document.getElementById('al-sms').checked = btn.getAttribute('data-sms') === '1';
 
         var leadSource = btn.getAttribute('data-source') || '';
@@ -743,6 +762,7 @@ function renderPage(rows, hasContactTracking, hasSource, missing) {
           phone: addLeadForm.phone.value.trim(),
           email: addLeadForm.email.value.trim(),
           message: addLeadForm.message.value.trim(),
+          notes: addLeadForm.notes ? addLeadForm.notes.value.trim() : '',
           source: addLeadForm.source.value,
           smsConsent: addLeadForm.sms_consent.checked,
         };

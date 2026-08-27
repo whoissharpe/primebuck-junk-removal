@@ -34,6 +34,7 @@ export async function onRequestPut(context) {
   const phone = clean(data.phone, 40);
   const email = clean(data.email, 200);
   const message = clean(data.message, 2000);
+  const notes = clean(data.notes, 2000);
   const smsConsent = data.smsConsent ? 1 : 0;
   const requestedSource = clean(data.source, 40);
 
@@ -64,17 +65,25 @@ export async function onRequestPut(context) {
   // If currentSource === "Website", finalSource stays "Website" — locked, ignore the request value.
 
   try {
+    // Full update, including notes and source.
     await env.DB.prepare(
-      "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ?, source = ? WHERE id = ?"
-    ).bind(name, phone, email || null, message, smsConsent, finalSource, id).run();
+      "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ?, source = ?, notes = ? WHERE id = ?"
+    ).bind(name, phone, email || null, message, smsConsent, finalSource, notes || null, id).run();
   } catch (err) {
-    // Fallback for schemas without the `source` column yet.
     try {
+      // Fallback for schemas without the `notes` column yet.
       await env.DB.prepare(
-        "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ? WHERE id = ?"
-      ).bind(name, phone, email || null, message, smsConsent, id).run();
+        "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ?, source = ? WHERE id = ?"
+      ).bind(name, phone, email || null, message, smsConsent, finalSource, id).run();
     } catch (err2) {
-      return json({ ok: false, error: "db_error", message: String((err2 && err2.message) || err2) }, 500);
+      try {
+        // Fallback for schemas without `source` (or `notes`) yet.
+        await env.DB.prepare(
+          "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ? WHERE id = ?"
+        ).bind(name, phone, email || null, message, smsConsent, id).run();
+      } catch (err3) {
+        return json({ ok: false, error: "db_error", message: String((err3 && err3.message) || err3) }, 500);
+      }
     }
   }
 

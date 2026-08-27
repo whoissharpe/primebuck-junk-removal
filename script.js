@@ -194,7 +194,7 @@ var quotePhotos = [];
         throw new Error(data.error || 'unknown');
       }
     } catch (err) {
-      status.textContent = 'Something went wrong. Please call (904) 913-5596 instead.';
+      status.textContent = 'Something went wrong. Please call (904) 544-7889 instead.';
       status.className = 'form__status form__status--err';
     } finally {
       button.disabled = false;

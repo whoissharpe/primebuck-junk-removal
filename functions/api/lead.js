@@ -39,6 +39,7 @@ export async function onRequestPost(context) {
   const phone = clean(data.phone, 40);
   const email = clean(data.email, 200);
   const message = clean(data.message, 2000);
+  const notes = clean(data.notes, 2000);
   const smsConsent = data.smsConsent ? 1 : 0;
   const source = clean(data.source, 40);
 
@@ -53,11 +54,21 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const result = await env.DB.prepare(
-      "INSERT INTO leads (name, phone, email, message, sms_consent, source) VALUES (?, ?, ?, ?, ?, ?)"
-    )
-      .bind(name, phone, email || null, message, smsConsent, source)
-      .run();
+    let result;
+    try {
+      result = await env.DB.prepare(
+        "INSERT INTO leads (name, phone, email, message, sms_consent, source, notes) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(name, phone, email || null, message, smsConsent, source, notes || null)
+        .run();
+    } catch (err) {
+      // Fallback for schemas without the `notes` column yet.
+      result = await env.DB.prepare(
+        "INSERT INTO leads (name, phone, email, message, sms_consent, source) VALUES (?, ?, ?, ?, ?, ?)"
+      )
+        .bind(name, phone, email || null, message, smsConsent, source)
+        .run();
+    }
     const id = result && result.meta && result.meta.last_row_id;
     return json({ ok: true, id: id });
   } catch (err) {
