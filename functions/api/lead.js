@@ -59,14 +59,14 @@ export async function onRequestPost(context) {
       result = await env.DB.prepare(
         "INSERT INTO leads (name, phone, email, message, sms_consent, source, notes) VALUES (?, ?, ?, ?, ?, ?, ?)"
       )
-        .bind(name, phone, email || null, message, smsConsent, source, notes || null)
+        .bind(name, phone, email || "", message, smsConsent, source, notes || null)
         .run();
     } catch (err) {
       // Fallback for schemas without the `notes` column yet.
       result = await env.DB.prepare(
         "INSERT INTO leads (name, phone, email, message, sms_consent, source) VALUES (?, ?, ?, ?, ?, ?)"
       )
-        .bind(name, phone, email || null, message, smsConsent, source)
+        .bind(name, phone, email || "", message, smsConsent, source)
         .run();
     }
     const id = result && result.meta && result.meta.last_row_id;

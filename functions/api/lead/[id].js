@@ -68,19 +68,19 @@ export async function onRequestPut(context) {
     // Full update, including notes and source.
     await env.DB.prepare(
       "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ?, source = ?, notes = ? WHERE id = ?"
-    ).bind(name, phone, email || null, message, smsConsent, finalSource, notes || null, id).run();
+    ).bind(name, phone, email || "", message, smsConsent, finalSource, notes || null, id).run();
   } catch (err) {
     try {
       // Fallback for schemas without the `notes` column yet.
       await env.DB.prepare(
         "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ?, source = ? WHERE id = ?"
-      ).bind(name, phone, email || null, message, smsConsent, finalSource, id).run();
+      ).bind(name, phone, email || "", message, smsConsent, finalSource, id).run();
     } catch (err2) {
       try {
         // Fallback for schemas without `source` (or `notes`) yet.
         await env.DB.prepare(
           "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ? WHERE id = ?"
-        ).bind(name, phone, email || null, message, smsConsent, id).run();
+        ).bind(name, phone, email || "", message, smsConsent, id).run();
       } catch (err3) {
         return json({ ok: false, error: "db_error", message: String((err3 && err3.message) || err3) }, 500);
       }

@@ -43,7 +43,7 @@ export async function onRequestPost(context) {
     const result = await env.DB.prepare(
       "INSERT INTO leads (name, phone, email, message, sms_consent, photos, source) VALUES (?, ?, ?, ?, ?, ?, 'Website')"
     )
-      .bind(name, phone, email || null, message, smsConsent, photos.length ? JSON.stringify(photos) : null)
+      .bind(name, phone, email || "", message, smsConsent, photos.length ? JSON.stringify(photos) : null)
       .run();
     leadId = result && result.meta && result.meta.last_row_id;
   } catch (err) {
@@ -52,7 +52,7 @@ export async function onRequestPost(context) {
       const result = await env.DB.prepare(
         "INSERT INTO leads (name, phone, email, message, sms_consent, photos) VALUES (?, ?, ?, ?, ?, ?)"
       )
-        .bind(name, phone, email || null, message, smsConsent, photos.length ? JSON.stringify(photos) : null)
+        .bind(name, phone, email || "", message, smsConsent, photos.length ? JSON.stringify(photos) : null)
         .run();
       leadId = result && result.meta && result.meta.last_row_id;
     } catch (err2) {
@@ -62,7 +62,7 @@ export async function onRequestPost(context) {
         const result = await env.DB.prepare(
           "INSERT INTO leads (name, phone, email, message, sms_consent) VALUES (?, ?, ?, ?, ?)"
         )
-          .bind(name, phone, email || null, message, smsConsent)
+          .bind(name, phone, email || "", message, smsConsent)
           .run();
         leadId = result && result.meta && result.meta.last_row_id;
       } catch (err3) {
