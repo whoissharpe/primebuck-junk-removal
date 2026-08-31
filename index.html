@@ -229,6 +229,9 @@ h3{font-size:1.1rem}
 /* ---------- steps ---------- */
 .steps{list-style:none;margin:2.75rem 0 0;padding:0;display:grid;gap:1.75rem;grid-template-columns:1fr}
 @media(min-width:760px){.steps{grid-template-columns:repeat(4,1fr);gap:1.25rem}}
+/* Five-step flow: two rows on tablet, one row on wide screens. */
+@media(min-width:760px){.steps--flow{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1100px){.steps--flow{grid-template-columns:repeat(5,1fr)}}
 .step{border-top:2px solid var(--bone);padding-top:1rem}
 .step__n{font-family:var(--display);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
   color:var(--clay-step);display:block;margin-bottom:.5rem;font-weight:700}
@@ -413,6 +416,7 @@ h3{font-size:1.1rem}
     <nav class="nav__links" aria-label="Primary">
       <a href="#haul">What we haul</a>
       <a href="#how">How it works</a>
+      <a href="#restrictions">What we don't take</a>
       <a href="#gallery">Gallery</a>
       <a href="#areas">Service areas</a>
       <a href="#faq">FAQ</a>
@@ -562,11 +566,12 @@ h3{font-size:1.1rem}
 <section class="sect sect--raised" id="how">
   <div class="wrap">
     <h2>How it works</h2>
-    <ol class="steps">
-      <li class="step"><span class="step__n">Step one</span><h3>Reach out</h3><p>Call, text or send the form. Tell us roughly what needs to go.</p></li>
-      <li class="step"><span class="step__n">Step two</span><h3>We plan it</h3><p>We review the scope, then confirm a time that fits your schedule.</p></li>
-      <li class="step"><span class="step__n">Step three</span><h3>We remove it</h3><p>The crew arrives and carries everything out. You do not lift a thing.</p></li>
-      <li class="step"><span class="step__n">Step four</span><h3>We finish clean</h3><p>We check the space is properly cleared before we pull away.</p></li>
+    <ol class="steps steps--flow">
+      <li class="step"><span class="step__n">Step one</span><h3>Tell us what you need removed</h3><p>Send us a few photos or videos of the items you want gone, or schedule an on-site estimate for larger or more complicated jobs. The more we can see upfront, the more accurately we can estimate your price.</p></li>
+      <li class="step"><span class="step__n">Step two</span><h3>We assess the job</h3><p>Our pricing is based on the overall scope of the job. The factors we weigh are listed just below.</p></li>
+      <li class="step"><span class="step__n">Step three</span><h3>Get your price</h3><p>Once we understand the scope of the job, we'll give you a clear price before we start. No guessing and no surprise charges for the normal work included in your quote.</p></li>
+      <li class="step"><span class="step__n">Step four</span><h3>We do the heavy lifting</h3><p>Our crew handles the removal, loading, hauling and cleanup. You don't need to move the junk to the curb or load it yourself.</p></li>
+      <li class="step"><span class="step__n">Step five</span><h3>It's gone</h3><p>Once everything is removed, we'll do a final check of the work area and haul the load away for proper disposal, recycling or donation whenever practical.</p></li>
     </ol>
   </div>
 </section>
@@ -576,14 +581,26 @@ h3{font-size:1.1rem}
   <div class="wrap split">
     <div>
       <p class="eyebrow">Straight pricing</p>
-      <h2>Priced by what it actually takes</h2>
-      <p class="lede">No surprise line items. We look at how much space the load takes in the truck and how hard it is to reach, then give you the number before anything moves.</p>
+      <h2>How we assess the job</h2>
+      <p class="lede">No surprise line items. Our pricing is based on the overall scope of the job, and you hear the number before anything moves.</p>
     </div>
     <ul class="facts">
-      <li><h3>Volume and size</h3><p>How much truck space the load consumes is the main factor.</p></li>
-      <li><h3>Access</h3><p>A second floor, a tight stairwell or a long carry changes the effort involved.</p></li>
-      <li><h3>Quoted before we start</h3><p>You hear the estimate for your job before the crew loads anything.</p></li>
+      <li><h3>Volume &amp; space</h3><p>The amount of junk and how much space it takes up in our truck or trailer is the biggest factor in most jobs.</p></li>
+      <li><h3>Accessibility</h3><p>We consider how easily the items can be reached, removed, carried and loaded. Items that are upstairs, far from the truck, in tight spaces or require disassembly may require additional labor.</p></li>
+      <li><h3>Crew &amp; labor</h3><p>Some jobs can be handled quickly by a small crew, while larger or more difficult jobs require additional crew members to complete safely and efficiently. We factor the labor needed to get the job done properly and within a reasonable timeframe.</p></li>
+      <li><h3>Disposal &amp; dump fees</h3><p>Most everyday household and commercial junk can be disposed of through our normal disposal channels. Certain specialty items or materials may have additional disposal costs because they require specialized facilities or are more expensive to dispose of.</p></li>
+      <li><h3>Distance &amp; logistics</h3><p>For jobs that require significant travel or have limited nearby disposal options, the additional driving time and transportation involved may be reflected in the price.</p></li>
     </ul>
+  </div>
+</section>
+
+<!-- ============================ WHAT WE DON'T TAKE ============================ -->
+<section class="sect" id="restrictions">
+  <div class="wrap">
+    <p class="eyebrow">Before you book</p>
+    <h2>What we don't take</h2>
+    <p class="lede">For everyone's safety, we do not remove hazardous materials, chemicals, gasoline/diesel, propane or fuel tanks containing fuel, explosives, ammunition, fireworks, medical waste/sharps, asbestos, unknown chemical containers, or other regulated hazardous waste.</p>
+    <p class="lede">Certain items — including tires, appliances, electronics, batteries, fluorescent bulbs and other specialty materials — may require special handling and disposal. Please tell us about these items when requesting a quote so we can determine whether we can legally and safely remove them.</p>
   </div>
 </section>
 
@@ -652,7 +669,8 @@ h3{font-size:1.1rem}
     <div class="faq">
       <details><summary>Which areas do you serve?</summary><p>Jacksonville and the surrounding communities, including Jacksonville Beach, Atlantic Beach, Ponte Vedra Beach, Ponte Vedra, St. Augustine, St. Augustine Beach, Orange Park, Fleming Island, St. Johns County and Middleburg. If you are nearby, ask and we will tell you straight away.</p></details>
       <details><summary>What furniture will you take?</summary><p>Furniture removal is our most requested service. Couches, beds, dressers, tables, chairs and other household pieces, whether it is one item or an entire room. Tell us what you have and we will confirm.</p></details>
-      <details><summary>How is pricing worked out?</summary><p>Price depends on the volume and size of what is going, meaning how much truck space it takes up. Access matters too. If items are hard to reach or need extra effort to get out, that affects the cost. You get a clear estimate for your specific job before we start.</p></details>
+      <details><summary>How is pricing worked out?</summary><p>Pricing is based on the overall scope of the job: the volume and space the load takes up in our truck or trailer, how accessible the items are, the crew and labor needed, disposal and dump fees for any specialty materials, and travel distance for jobs further out. You get a clear price before we start.</p></details>
+      <details><summary>Is there anything you won't take?</summary><p>For everyone's safety, we do not remove hazardous materials, chemicals, gasoline or diesel, propane or fuel tanks containing fuel, explosives, ammunition, fireworks, medical waste and sharps, asbestos, unknown chemical containers, or other regulated hazardous waste. Certain items such as tires, appliances, electronics, batteries and fluorescent bulbs may require special handling, so tell us about them when you request a quote and we will confirm whether we can legally and safely remove them.</p></details>
       <details><summary>Do you remove appliances?</summary><p>Yes, from refrigerators to washers and dryers. We are flexible on timing, so if you need something picked up soon, get in touch and we will work around your availability.</p></details>
       <details><summary>What does an estate cleanout include?</summary><p>We remove furniture, appliances, personal items and general debris from the whole property, working through it room by room. Our crew handles the heavy lifting and the hauling. It is the full solution when a home needs emptying.</p></details>
       <details><summary>Can you come on short notice?</summary><p>We keep scheduling flexible. Whether it is a last minute cleanup or something planned well ahead, we will do our best to fit you in. Get in touch and we will find a time.</p></details>
@@ -813,7 +831,12 @@ h3{font-size:1.1rem}
     {
       "@type": "Question",
       "name": "How is pricing worked out?",
-      "acceptedAnswer": { "@type": "Answer", "text": "Price depends on the volume and size of what is going, meaning how much truck space it takes up. Access matters too. If items are hard to reach or need extra effort to get out, that affects the cost. You get a clear estimate for your specific job before we start." }
+      "acceptedAnswer": { "@type": "Answer", "text": "Pricing is based on the overall scope of the job: the volume and space the load takes up in our truck or trailer, how accessible the items are, the crew and labor needed, disposal and dump fees for any specialty materials, and travel distance for jobs further out. You get a clear price before we start." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is there anything you won't take?",
+      "acceptedAnswer": { "@type": "Answer", "text": "For everyone's safety, we do not remove hazardous materials, chemicals, gasoline or diesel, propane or fuel tanks containing fuel, explosives, ammunition, fireworks, medical waste and sharps, asbestos, unknown chemical containers, or other regulated hazardous waste. Certain items such as tires, appliances, electronics, batteries and fluorescent bulbs may require special handling, so tell us about them when you request a quote and we will confirm whether we can legally and safely remove them." }
     },
     {
       "@type": "Question",

@@ -225,6 +225,9 @@ h3{font-size:1.1rem}
 /* ---------- steps ---------- */
 .steps{list-style:none;margin:2.75rem 0 0;padding:0;display:grid;gap:1.75rem;grid-template-columns:1fr}
 @media(min-width:760px){.steps{grid-template-columns:repeat(4,1fr);gap:1.25rem}}
+/* Five-step flow: two rows on tablet, one row on wide screens. */
+@media(min-width:760px){.steps--flow{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1100px){.steps--flow{grid-template-columns:repeat(5,1fr)}}
 .step{border-top:2px solid var(--bone);padding-top:1rem}
 .step__n{font-family:var(--display);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
   color:var(--clay-step);display:block;margin-bottom:.5rem;font-weight:700}
@@ -409,6 +412,7 @@ h3{font-size:1.1rem}
     <nav class="nav__links" aria-label="Primary">
       <a href="/#haul">What we haul</a>
       <a href="/#how">How it works</a>
+      <a href="/#restrictions">What we don't take</a>
       <a href="/#gallery">Gallery</a>
       <a href="/#areas">Service areas</a>
       <a href="/#faq">FAQ</a>
