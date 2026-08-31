@@ -42,6 +42,7 @@ export async function onRequestPost(context) {
   const notes = clean(data.notes, 2000);
   const smsConsent = data.smsConsent ? 1 : 0;
   const source = clean(data.source, 40);
+  const receivedAt = parseReceivedAt(data.receivedAt);
 
   if (!name || !phone || !message) {
     return json({ ok: false, error: "missing_fields" }, 400);
@@ -53,27 +54,39 @@ export async function onRequestPost(context) {
     return json({ ok: false, error: "invalid_source" }, 400);
   }
 
+  function buildInsert(includeNotes) {
+    const cols = ["name", "phone", "email", "message", "sms_consent", "source"];
+    const vals = [name, phone, email || "", message, smsConsent, source];
+    if (includeNotes) { cols.push("notes"); vals.push(notes || null); }
+    if (receivedAt) { cols.push("created_at"); vals.push(receivedAt); }
+    const placeholders = cols.map(() => "?").join(", ");
+    return env.DB.prepare(`INSERT INTO leads (${cols.join(", ")}) VALUES (${placeholders})`).bind(...vals);
+  }
+
   try {
     let result;
     try {
-      result = await env.DB.prepare(
-        "INSERT INTO leads (name, phone, email, message, sms_consent, source, notes) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-        .bind(name, phone, email || "", message, smsConsent, source, notes || null)
-        .run();
+      result = await buildInsert(true).run();
     } catch (err) {
       // Fallback for schemas without the `notes` column yet.
-      result = await env.DB.prepare(
-        "INSERT INTO leads (name, phone, email, message, sms_consent, source) VALUES (?, ?, ?, ?, ?, ?)"
-      )
-        .bind(name, phone, email || "", message, smsConsent, source)
-        .run();
+      result = await buildInsert(false).run();
     }
     const id = result && result.meta && result.meta.last_row_id;
     return json({ ok: true, id: id });
   } catch (err) {
     return json({ ok: false, error: "db_error", message: String((err && err.message) || err) }, 500);
   }
+}
+
+// Accepts an ISO datetime string from the client and converts it to the
+// "YYYY-MM-DD HH:MM:SS" UTC format used elsewhere in this table.
+// Returns null if not provided or unparseable (caller then omits it,
+// letting the column's own default — the current time — apply).
+function parseReceivedAt(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
 function clean(v, max) {

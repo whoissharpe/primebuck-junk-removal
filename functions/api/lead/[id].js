@@ -37,6 +37,7 @@ export async function onRequestPut(context) {
   const notes = clean(data.notes, 2000);
   const smsConsent = data.smsConsent ? 1 : 0;
   const requestedSource = clean(data.source, 40);
+  const receivedAt = parseReceivedAt(data.receivedAt);
 
   if (!name || !phone || !message) {
     return json({ ok: false, error: "missing_fields" }, 400);
@@ -64,23 +65,27 @@ export async function onRequestPut(context) {
   }
   // If currentSource === "Website", finalSource stays "Website" — locked, ignore the request value.
 
+  function buildUpdate(includeSource, includeNotes) {
+    const sets = ["name = ?", "phone = ?", "email = ?", "message = ?", "sms_consent = ?"];
+    const vals = [name, phone, email || "", message, smsConsent];
+    if (includeSource) { sets.push("source = ?"); vals.push(finalSource); }
+    if (includeNotes) { sets.push("notes = ?"); vals.push(notes || null); }
+    if (receivedAt) { sets.push("created_at = ?"); vals.push(receivedAt); }
+    vals.push(id);
+    return env.DB.prepare(`UPDATE leads SET ${sets.join(", ")} WHERE id = ?`).bind(...vals);
+  }
+
   try {
     // Full update, including notes and source.
-    await env.DB.prepare(
-      "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ?, source = ?, notes = ? WHERE id = ?"
-    ).bind(name, phone, email || "", message, smsConsent, finalSource, notes || null, id).run();
+    await buildUpdate(true, true).run();
   } catch (err) {
     try {
       // Fallback for schemas without the `notes` column yet.
-      await env.DB.prepare(
-        "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ?, source = ? WHERE id = ?"
-      ).bind(name, phone, email || "", message, smsConsent, finalSource, id).run();
+      await buildUpdate(true, false).run();
     } catch (err2) {
       try {
         // Fallback for schemas without `source` (or `notes`) yet.
-        await env.DB.prepare(
-          "UPDATE leads SET name = ?, phone = ?, email = ?, message = ?, sms_consent = ? WHERE id = ?"
-        ).bind(name, phone, email || "", message, smsConsent, id).run();
+        await buildUpdate(false, false).run();
       } catch (err3) {
         return json({ ok: false, error: "db_error", message: String((err3 && err3.message) || err3) }, 500);
       }
@@ -114,6 +119,15 @@ export async function onRequestDelete(context) {
 function clean(v, max) {
   if (typeof v !== "string") return "";
   return v.trim().slice(0, max);
+}
+
+// See functions/api/lead.js for the matching comment — same conversion,
+// used here so edits can also adjust when a lead was actually received.
+function parseReceivedAt(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
 function json(obj, status) {

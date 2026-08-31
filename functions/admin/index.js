@@ -181,6 +181,10 @@ function renderAddLeadPanel() {
           ${options}
         </select>
       </div>
+      <div class="field">
+        <label for="al-datetime">Date &amp; time <span class="muted">(optional — defaults to now)</span></label>
+        <input id="al-datetime" name="receivedAt" type="datetime-local">
+      </div>
       <div class="field field--full">
         <label for="al-message">What needs to go?</label>
         <textarea id="al-message" name="message" required maxlength="2000"></textarea>
@@ -241,8 +245,10 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
         const photos = parsedPhotos(r.photos);
         const contacted = hasContactTracking && r.contacted_count > 0;
         const source = hasSource ? (r.source || "Website") : null;
+        const searchBlob = [r.name, r.phone, r.email, r.message, hasNotes ? r.notes : "", hasSource ? source : ""]
+          .filter(Boolean).join(" ").toLowerCase();
         return `
-        <tr class="${isNew(r.created_at) ? "is-new" : ""}" ${hasContactTracking ? `data-contacted="${contacted ? 1 : 0}"` : ""}>
+        <tr class="${isNew(r.created_at) ? "is-new" : ""}" data-search="${esc(searchBlob)}" ${hasContactTracking ? `data-contacted="${contacted ? 1 : 0}"` : ""}>
           <td class="nowrap" data-label="Received">
             ${isNew(r.created_at) ? `<span class="badge badge--new">New</span>` : ""}
             ${esc(fmtDate(r.created_at))}
@@ -258,7 +264,7 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
           ${hasNotes ? `<td class="msg" data-label="Notes">${renderNotes(r.notes)}</td>` : ""}
           <td class="nowrap" data-label="Actions">
             <div class="row-actions">
-              ${hasSource ? `<button type="button" class="row-btn row-btn--edit" data-id="${r.id}" data-name="${esc(r.name)}" data-phone="${esc(r.phone)}" data-email="${esc(r.email || "")}" data-message="${esc(r.message)}" data-source="${esc(source || "")}" data-notes="${esc(r.notes || "")}" data-sms="${r.sms_consent ? 1 : 0}">Edit</button>` : ""}
+              ${hasSource ? `<button type="button" class="row-btn row-btn--edit" data-id="${r.id}" data-name="${esc(r.name)}" data-phone="${esc(r.phone)}" data-email="${esc(r.email || "")}" data-message="${esc(r.message)}" data-source="${esc(source || "")}" data-notes="${esc(r.notes || "")}" data-created="${esc(r.created_at || "")}" data-sms="${r.sms_consent ? 1 : 0}">Edit</button>` : ""}
               <button type="button" class="row-btn row-btn--delete" data-id="${r.id}" data-name="${esc(r.name)}">Delete</button>
             </div>
           </td>
@@ -356,6 +362,14 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
   @media(min-width:640px){.stats{grid-template-columns:repeat(5,1fr)}}
   @media(max-width:639px){.stats{grid-template-columns:repeat(2,1fr)}}
 
+  .searchbar{margin:1.5rem 0 0}
+  .searchbar input{
+    width:100%;max-width:28rem;background:var(--raised);border:1px solid var(--line-soft);
+    color:var(--bone);font-family:var(--body);font-size:.92rem;padding:.65rem .9rem;
+    border-radius:8px;
+  }
+  .searchbar input::placeholder{color:var(--muted)}
+  .searchbar input:focus-visible{outline:2px solid var(--bone);outline-offset:1px}
   .filterbar{display:flex;gap:.5rem;flex-wrap:wrap}
   .filter-btn{
     font-family:var(--body);font-size:.82rem;font-weight:600;color:var(--muted);
@@ -541,6 +555,10 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
       ${hasContactTracking ? `<div class="stat stat--flag"><div class="stat__n">${needsContact}</div><div class="stat__label">Needs contact</div></div>` : ""}
     </div>
 
+    <div class="searchbar">
+      <input type="search" id="leadSearch" placeholder="Search by name, phone, email, message${hasNotes ? ", notes" : ""}…" aria-label="Search leads">
+    </div>
+
     ${hasContactTracking || hasSource ? `
     <div class="actionbar">
       ${hasContactTracking ? `
@@ -564,17 +582,41 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
     </div>
   </div>
 
-  ${(hasContactTracking || hasSource) ? `<script>
+  <script>
   (function () {
     'use strict';
-    var filterBtns = document.querySelectorAll('.filter-btn');
-    var rows = document.querySelectorAll('tbody tr[data-contacted]');
 
-    function applyFilter(f) {
+    // Stored timestamps are UTC "YYYY-MM-DD HH:MM:SS" strings. The <input type="datetime-local">
+    // field works in the browser's local time with no timezone info — these convert between them.
+    function isoToLocalInput(dbValue) {
+      if (!dbValue) return '';
+      var d = new Date(dbValue.replace(' ', 'T') + 'Z');
+      if (isNaN(d.getTime())) return '';
+      var pad = function (n) { return String(n).padStart(2, '0'); };
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function localInputToIso(value) {
+      if (!value) return '';
+      var d = new Date(value);
+      if (isNaN(d.getTime())) return '';
+      return d.toISOString();
+    }
+
+    var filterBtns = document.querySelectorAll('.filter-btn');
+    var rows = document.querySelectorAll('tbody tr[data-search]');
+    var searchInput = document.getElementById('leadSearch');
+    var currentStatusFilter = 'all';
+
+    function applyFilters() {
+      var term = searchInput ? searchInput.value.trim().toLowerCase() : '';
       rows.forEach(function (tr) {
-        var contacted = tr.getAttribute('data-contacted') === '1';
-        var show = f === 'all' || (f === 'pending' && !contacted) || (f === 'done' && contacted);
-        tr.style.display = show ? '' : 'none';
+        var matchesSearch = !term || (tr.getAttribute('data-search') || '').indexOf(term) !== -1;
+        var matchesStatus = true;
+        if (currentStatusFilter !== 'all' && tr.hasAttribute('data-contacted')) {
+          var contacted = tr.getAttribute('data-contacted') === '1';
+          matchesStatus = (currentStatusFilter === 'pending' && !contacted) || (currentStatusFilter === 'done' && contacted);
+        }
+        tr.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
       });
     }
 
@@ -582,9 +624,14 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
       btn.addEventListener('click', function () {
         filterBtns.forEach(function (b) { b.classList.remove('is-active'); });
         btn.classList.add('is-active');
-        applyFilter(btn.getAttribute('data-filter'));
+        currentStatusFilter = btn.getAttribute('data-filter');
+        applyFilters();
       });
     });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', applyFilters);
+    }
 
     document.querySelectorAll('.cbtn').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -703,6 +750,8 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
         document.getElementById('al-message').value = btn.getAttribute('data-message') || '';
         var notesField = document.getElementById('al-notes');
         if (notesField) notesField.value = btn.getAttribute('data-notes') || '';
+        var datetimeField = document.getElementById('al-datetime');
+        if (datetimeField) datetimeField.value = isoToLocalInput(btn.getAttribute('data-created') || '');
         document.getElementById('al-sms').checked = btn.getAttribute('data-sms') === '1';
 
         var leadSource = btn.getAttribute('data-source') || '';
@@ -763,6 +812,7 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
           email: addLeadForm.email.value.trim(),
           message: addLeadForm.message.value.trim(),
           notes: addLeadForm.notes ? addLeadForm.notes.value.trim() : '',
+          receivedAt: addLeadForm.receivedAt ? localInputToIso(addLeadForm.receivedAt.value) : '',
           source: addLeadForm.source.value,
           smsConsent: addLeadForm.sms_consent.checked,
         };
@@ -799,7 +849,7 @@ function renderPage(rows, hasContactTracking, hasSource, hasNotes, missing) {
       });
     }
   })();
-  </script>` : ""}
+  </script>
 </body>
 </html>`;
 }
